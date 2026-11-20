@@ -29,9 +29,10 @@
 
 // ---------- 6. PINS (match the wiring diagram) ------------------------------
 // 16x2 LCD, wired directly (option A). RW pin goes to GND.
+// Pins follow the wiring diagram (wiring.png) so the wires do not cross.
 #define PIN_LCD_RS   19
-#define PIN_LCD_E    23
-#define PIN_LCD_D4   18
+#define PIN_LCD_E    18
+#define PIN_LCD_D4    5
 #define PIN_LCD_D5   17
 #define PIN_LCD_D6   16
 #define PIN_LCD_D7    4
@@ -43,16 +44,16 @@
 #define PIN_METAL_BY    35    // LJ18A3-8-Z/BY (PNP) through divider.          HIGH = metal
 #define PIN_IR          27    // IR obstacle module OUT.                       LOW = item there
 #define PIN_US_TRIG     33    // HC-SR04 TRIG
-#define PIN_US_ECHO     32    // HC-SR04 ECHO through 1k/2k divider
+#define PIN_US_ECHO     32    // HC-SR04 ECHO through 1k/2.2k divider
 
 #define PIN_LED_RED     21    // traffic light module R
 #define PIN_LED_YELLOW  22    // traffic light module Y
-#define PIN_LED_GREEN   13    // traffic light module G
+#define PIN_LED_GREEN   23    // traffic light module G
 #define PIN_BUZZER      14    // active buzzer + (black wire to GND)
 #define PIN_BUTTON      15    // push button to GND: ends a drop session
 
 // Optional: a capacitive sensor LJC18A3-B-Z/BY wired like the BY sensor.
-// Set to a free pin (e.g. 5) to require plastic; leave -1 if you don't have one.
+// Set to a free pin (e.g. 13) to require plastic; leave -1 if you don't have one.
 #define PIN_PLASTIC     -1    // HIGH = plastic
 
 // ---------- 7. SERVO ANGLES (adjust after mounting) -------------------------

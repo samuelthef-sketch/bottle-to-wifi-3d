@@ -19,7 +19,7 @@ that still have minutes. It also runs the bottle machine.
 | `BottleKonek/portal_html.h` | Student website (works offline) |
 | `BottleKonek/admin_html.h` | Admin page |
 | `BottleKonek/logo_jpg.h` | School logo |
-| `wiring.svg` / `wiring.png` | Wiring diagram |
+| `wiring.png` / `wiring.svg` | Picture wiring diagram (made by `make_wiring_png.py`) |
 
 ## 1. Install Arduino IDE and the ESP32 board
 
@@ -53,14 +53,14 @@ that still have minutes. It also runs the bottle machine.
 |---|---|---|---|
 | 12 V supply | V+ / V− | — | to buck IN, ESP32 DC jack, both metal sensors (brown/blue) |
 | LM2596 buck | OUT+ / OUT− | — | **set to 5.0 V first**; feeds servos, LCD, HC-SR04 |
-| LCD 16×2 | RS, E, D4, D5, D6, D7 | D19, D23, D18, D17, D16, D4 | VSS, RW, K → GND · VDD, A → 5 V · VO → pot middle |
+| LCD 16×2 | RS, E, D4, D5, D6, D7 | D19, D18, D5, D17, D16, D4 | VSS, RW, K → GND · VDD, A → 5 V · VO → pot middle |
 | Servo gate (MG90S #1) | orange | D25 | red 5 V, brown GND |
 | Servo tray (MG90S #2) | orange | D26 | red 5 V, brown GND |
 | Metal sensor BX (NPN) | black | D34 | 1 kΩ pull-up to 12 V, then 10 kΩ to D34, 3.3 kΩ D34→GND |
 | Metal sensor BY (PNP) | black | D35 | 10 kΩ to D35, 3.3 kΩ D35→GND |
 | IR obstacle module | OUT | D27 | VCC 3V3 |
 | HC-SR04 | TRIG / ECHO | D33 / D32 | ECHO through 1 kΩ, 2.2 kΩ D32→GND · VCC 5 V |
-| Traffic light | R / Y / G | D21 / D22 / D13 | GND to GND |
+| Traffic light | R / Y / G | D21 / D22 / D23 | GND to GND |
 | Buzzer | red | D14 | black to GND |
 | Button | one leg | D15 | other leg to GND |
 
