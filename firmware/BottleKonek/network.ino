@@ -154,7 +154,16 @@ static void onWiFiEvent(arduino_event_id_t e, arduino_event_info_t info) {
       Serial.print("Main WiFi connected. ESP32 IP: "); Serial.println(WiFi.localIP()); break;
     case ARDUINO_EVENT_WIFI_STA_DISCONNECTED: {
       static uint32_t lastMsg = 0;          // print at most every 10 s
-      if (millis() - lastMsg > 10000) { lastMsg = millis(); Serial.println("Main WiFi not connected, retrying... (check name/password in config.h)"); }
+      if (millis() - lastMsg > 10000) {
+        lastMsg = millis();
+        uint8_t r = info.wifi_sta_disconnected.reason;
+        const char *why =
+          (r == 201) ? "WiFi name not found (check spelling, must be 2.4 GHz, move closer)" :
+          (r == 15 || r == 202 || r == 204 || r == 2) ? "wrong password (or router security not supported)" :
+          (r == 203) ? "router refused the ESP32 (check MAC filter / max devices)" :
+          "other";
+        Serial.printf("Main WiFi not connected (reason %u: %s), retrying...\n", r, why);
+      }
       break;
     }
     default: break;
@@ -266,6 +275,7 @@ void networkBegin() {
     Serial.println("TEST MODE: main WiFi name not set in config.h. Hotspot and website work, no internet.");
   } else {
     WiFi.setAutoReconnect(true);
+    WiFi.setMinSecurity(WIFI_AUTH_WEP);      // also accept older routers (WPA/WPA2 TKIP)
     WiFi.begin(MAIN_WIFI_SSID, MAIN_WIFI_PASSWORD);
     Serial.print("Joining main WiFi \"" MAIN_WIFI_SSID "\"");
     for (int i = 0; i < 40 && WiFi.status() != WL_CONNECTED; i++) { delay(250); Serial.print("."); }
