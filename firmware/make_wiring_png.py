@@ -82,10 +82,8 @@ XG_L, X5_L = 40, 76
 X33_R, XG_R, X5_R, X12_R = 2246, 2284, 2322, 2360
 BOT = 1660
 wire([(600, Y12), (X12_R, Y12), (X12_R, BOT)], C['v12'], 9)
-wire([(X5_L, BOT), (X5_L, Y5), (X5_R, Y5), (X5_R, BOT)], C['v5'], 9)
-wire([(XG_L, BOT), (XG_L, YG), (XG_R, YG), (XG_R, BOT)], C['gnd'], 9)
-for x, s, col in [(XG_L, 'GND', C['gnd']), (X5_L, '5V', C['v5'])]:
-    tag(x - 18, BOT + 30, s, col)
+wire([(1105, Y5), (X5_R, Y5), (X5_R, BOT)], C['v5'], 9)
+wire([(530, YG), (XG_R, YG), (XG_R, BOT)], C['gnd'], 9)
 for x, s, col in [(X33_R, '3V3', C['v33']), (XG_R, 'GND', C['gnd']), (X5_R, '5V', C['v5']), (X12_R, '12V', C['v12'])]:
     tag(x - 18, BOT + 30, s, col)
 M(1660, Y12 - 10, '12 V rail', 13, 700, 'start', C['v12'])
@@ -180,13 +178,26 @@ def to_right_pin(name, pts, col):
     wire(pts + [(pts[-1][0], y), (RXp, y)], col)
 
 
+def left_g(name):
+    y = ry(LROWS.index(name)) + 22
+    pinhead(LX, y); M(LX + 20, y + 5, 'G', 12, 800, 'start', '#9fe0c0')
+    return y
+
+
+def left_v(name):
+    y = ry(LROWS.index(name)) - 22
+    pinhead(LX, y); M(LX + 20, y + 5, 'V (5V)', 12, 800, 'start', '#ffb86b')
+    return y
+
+
 # ---------------------------------------------------------------- LEFT: push button (D15)
 R(640, 512, 70, 70, '#2a2a2a', '#000', 6); Cc(675, 547, 20, '#111', '#555')
 T(600, 498, 'Push button', 15, 700)
 wire([(710, 527), (760, 527)], '#888', 4)
 to_left_pin('D15', [(710, 540), (900, 540)], SIGCOL[0])
-wire([(640, 560), (XG_L, 560)], C['gnd'], 5); dot(XG_L, 560, C['gnd'])
-M(720, 512, 'leg 1 → D15', 12, 700, 'start', SIGCOL[0]); M(560, 552, 'leg 2 → GND', 12, 700, 'end')
+gb = left_g('D15')
+wire([(710, gb), (LX, gb)], C['gnd'], 5)
+M(720, 512, 'leg 1 → D15', 12, 700, 'start', SIGCOL[0]); M(720, gb + 22, 'leg 2 → G', 12, 700, 'start')
 
 # ---------------------------------------------------------------- LEFT: traffic light (standing, pins on right)
 TLX, TLY = 560, 610
@@ -199,7 +210,8 @@ for n, pin, col in tl:
     to_left_pin(pin, [(TLX + 100, y), (TLX + 100, y)], col)
 gnd_y = ry(LROWS.index('D17')) + 52
 pinhead(TLX + 100, gnd_y); M(TLX + 116, gnd_y - 12, 'GND', 12, 700)
-wire([(TLX + 100, gnd_y), (TLX + 120, gnd_y), (TLX + 120, gnd_y + 42), (XG_L, gnd_y + 42)], C['gnd'], 5); dot(XG_L, gnd_y + 42, C['gnd'])
+gt = left_g('D17')
+wire([(TLX + 100, gnd_y), (900, gnd_y), (900, gt), (LX, gt)], C['gnd'], 5)
 T(TLX - 10, TLY - 14, 'Traffic light module', 15, 700)
 
 # ---------------------------------------------------------------- LEFT: 16x2 LCD with I2C board (back view)
@@ -224,12 +236,14 @@ for i, n in enumerate(['GND', 'VCC', 'SDA', 'SCL']):
     lp[n] = y
     pinhead(LCDX + 452, y); M(LCDX + 432, y + 5, n, 11.5, 700, 'end', '#e8f5e9')
 PX = LCDX + 452
-to_left_pin('D21', [(PX, lp['SDA']), (790, lp['SDA'])], SIGCOL[1])
-to_left_pin('D22', [(PX, lp['SCL']), (810, lp['SCL'])], SIGCOL[3])
+to_left_pin('D21', [(PX, lp['SDA']), (800, lp['SDA'])], SIGCOL[1])
+to_left_pin('D22', [(PX, lp['SCL']), (820, lp['SCL'])], SIGCOL[3])
 M(PX + 14, lp['SDA'] - 8, 'SDA', 11, 700, 'start', SIGCOL[1])
 M(PX + 14, lp['SCL'] + 18, 'SCL', 11, 700, 'start', SIGCOL[3])
-wire([(PX, lp['GND']), (PX + 16, lp['GND']), (PX + 16, LCDY - 40), (XG_L, LCDY - 40)], C['gnd'], 5); dot(XG_L, LCDY - 40, C['gnd'])
-wire([(PX, lp['VCC']), (PX + 34, lp['VCC']), (PX + 34, LCDY - 54), (X5_L, LCDY - 54)], C['v5'], 5); dot(X5_L, LCDY - 54, C['v5'])
+lg = left_g('D18')
+wire([(PX, lp['GND']), (760, lp['GND']), (760, lg), (LX, lg)], C['gnd'], 5)
+lv = left_v('D21')
+wire([(PX, lp['VCC']), (780, lp['VCC']), (780, lv), (LX, lv)], C['v5'], 5)
 
 # ---------------------------------------------------------------- RIGHT side parts
 CX = 1760            # left edge of right-side parts
@@ -238,11 +252,11 @@ PW = 1820            # x where signal pins sit (left edge)
 # buzzer (D14)
 Cc(1900, 545, 36, '#1a1a1a', '#000'); Cc(1900, 545, 9, '#ddd', '#888')
 T(1960, 520, 'Active buzzer', 15, 700)
-pinhead(PW, 530); pinhead(PW + 230, 560)
+pinhead(PW, 530); pinhead(PW, 552)
 M(PW + 18, 512, 'red +', 12, 700, 'start', '#c92a2a')
 to_right_pin('D14', [(PW, 530), (1660, 530)], SIGCOL[8])
-wire([(PW + 230, 560), (XG_R, 560)], C['gnd'], 5); dot(XG_R, 560, C['gnd'])
-M(PW + 150, 590, 'black → GND', 12, 700)
+wire([(PW, 552), (1866, 552)], C['gnd'], 5)
+M(PW + 6, 576, 'black', 12, 700)
 
 # ESP32 G pin next to a row's S pin (each row is G · V · S on the board)
 def board_g(name):
@@ -259,17 +273,19 @@ def gnd_to_board(name, ys, ch):
     wire([(PW, ys), (gx, ys), (gx, gy), (RXp, gy)], C['gnd'], 5)
 
 
+gnd_to_board('D14', 552, 1660)   # buzzer black
+
 # IR module (D27): OUT + GND go to the ESP32 row D27, VCC to 3V3
-R(1860, 630, 220, 70, '#1f5fae', '#0d2f5c', 6)
-Cc(1880, 652, 10, '#111', '#000'); Cc(1880, 680, 10, '#e9f0ff', '#777')
-T(1860, 622, 'IR obstacle module', 15, 700)
-pinhead(PW, 665); pinhead(PW, 687)
-M(PW + 6, 654, 'OUT', 11, 700); M(PW + 6, 714, 'GND', 11, 700)
-wire([(PW, 665), (1860, 665)], SIGCOL[9]); wire([(PW, 687), (1860, 687)], C['gnd'], 5)
-to_right_pin('D27', [(PW, 665), (1640, 665)], SIGCOL[9])
-gnd_to_board('D27', 687, 1640)
-pinhead(2100, 665); M(2116, 661, 'VCC', 11)
-wire([(2080, 665), (X33_R, 665)], C['v33'], 5); dot(X33_R, 665, C['v33'])
+R(1860, 660, 220, 72, '#1f5fae', '#0d2f5c', 6)
+Cc(1880, 683, 10, '#111', '#000'); Cc(1880, 711, 10, '#e9f0ff', '#777')
+T(1860, 652, 'IR obstacle module', 15, 700)
+pinhead(PW, 700); pinhead(PW, 722)
+M(PW + 6, 690, 'OUT', 11, 700); M(PW + 6, 748, 'GND', 11, 700)
+wire([(PW, 700), (1860, 700)], SIGCOL[9]); wire([(PW, 722), (1860, 722)], C['gnd'], 5)
+to_right_pin('D27', [(PW, 700), (1640, 700)], SIGCOL[9])
+gnd_to_board('D27', 722, 1640)
+pinhead(2100, 696); M(2116, 692, 'VCC', 11)
+wire([(2080, 696), (X33_R, 696)], C['v33'], 5); dot(X33_R, 696, C['v33'])
 
 
 def servo(y, title, pin, ch, col):
