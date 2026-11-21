@@ -26,16 +26,20 @@ int         binPct = 0;
 // ---------------------------------------------------------------------------
 void setup() {
   Serial.begin(115200);
-  delay(200);
-  Serial.println("\n\nBottleKonek starting...");
+  delay(2000);                       // time for Serial Monitor to reconnect after reset
+  Serial.println("\n\n=== BottleKonek starting ===");
+  Serial.println("[1/4] Machine: LCD, LEDs, buzzer...");
 
   memset(clients, 0, sizeof(clients));
   memset(&drop, 0, sizeof(drop));
 
   machineBegin();          // LCD + LEDs first so people see something
   lcdShow("BottleKonek", "Starting...");
+  Serial.println("[2/4] Storage...");
   storageBegin();          // LittleFS + settings + stats
+  Serial.println("[3/4] WiFi...");
   networkBegin();          // main WiFi + hotspot + internet sharing + DNS
+  Serial.println("[4/4] Website...");
   webBegin();              // portal website
   lcdShow("BottleKonek", "Code " MACHINE_CODE " Ready");
   Serial.println("Ready. Join \"" PORTAL_WIFI_NAME "\" and open http://192.168.4.1");
