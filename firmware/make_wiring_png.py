@@ -136,9 +136,18 @@ R(BX0 + 30, BY0 + 18, 70, 60, '#111', '#444', 6); T(BX0 + 65, BY0 + 96, 'DC jack
 R(BX0 + 200, BY0 + 18, 60, 34, '#bfc4c8', '#666', 6); T(BX0 + 230, BY0 + 70, 'USB-C', 12, 600, 'middle', '#cfd6d4')
 T(BX0 + 240, BY0 + 1010, 'ESP32 expansion board', 18, 700, 'middle', '#e9efed')
 T(BX0 + 240, BY0 + 1036, 'use the S (signal) pin of each G·V·S row', 13, 400, 'middle', '#b9c4c1')
-# DC jack feed
-wire([(BX0 + 65, Y12), (BX0 + 65, BY0 + 18)], C['v12'], 7); dot(BX0 + 65, Y12, C['v12'])
-T(BX0 + 82, BY0 - 14, 'barrel plug 5.5×2.1 (centre +)', 13, 600, 'start', C['v12'])
+# USB phone charger powers the ESP32 (DC jack not used)
+CHX, CHY = 1240, 146
+R(CHX, CHY, 120, 80, '#f4f4f2', '#8a8f93', 12)
+R(CHX + 118, CHY + 18, 28, 12, '#c9cdd0', '#777', 2); R(CHX + 118, CHY + 50, 28, 12, '#c9cdd0', '#777', 2)
+T(CHX + 60, CHY + 36, 'Phone', 14, 700, 'middle', '#3b4246'); T(CHX + 60, CHY + 54, 'charger', 14, 700, 'middle', '#3b4246')
+M(CHX + 60, CHY + 72, '5V 1-2A', 11, 700, 'middle', '#6b7378')
+T(CHX + 156, CHY + 46, '← plug into 220 V outlet', 13, 700, 'start', '#7a5c2e')
+o.append(f'<polyline points="{CHX+60},{CHY+80} {CHX+60},{BY0-40} {BX0+230},{BY0-40} {BX0+230},{BY0+18}" fill="none" stroke="#ffffff" stroke-width="14" stroke-linejoin="round"/>')
+o.append(f'<polyline points="{CHX+60},{CHY+80} {CHX+60},{BY0-40} {BX0+230},{BY0-40} {BX0+230},{BY0+18}" fill="none" stroke="#cfd3d6" stroke-width="10" stroke-linejoin="round"/>')
+R(BX0 + 214, BY0 + 4, 32, 20, '#e9ecee', '#777', 4)
+T(BX0 + 214, BY0 - 14, 'USB-C cable from charger', 13, 700, 'end', '#4c635d')
+M(BX0 + 65, BY0 + 114, '(not used)', 11, 600, 'middle', '#8a9a96')
 T(BX0 + 456, BY0 + 116, 'GND to rail: required', 12, 700, 'end', '#9fe0c0')
 # top power header
 P33 = (BX0 + 380, BY0 + 60); PG = (BX0 + 430, BY0 + 60)
