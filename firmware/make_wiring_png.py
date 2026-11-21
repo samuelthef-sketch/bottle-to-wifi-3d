@@ -141,6 +141,7 @@ T(BX0 + 240, BY0 + 1036, 'use the S (signal) pin of each G·V·S row', 13, 400, 
 # DC jack feed
 wire([(BX0 + 65, Y12), (BX0 + 65, BY0 + 18)], C['v12'], 7); dot(BX0 + 65, Y12, C['v12'])
 T(BX0 + 82, BY0 - 14, 'barrel plug 5.5×2.1 (centre +)', 13, 600, 'start', C['v12'])
+T(BX0 + 456, BY0 + 116, 'GND to rail: required', 12, 700, 'end', '#9fe0c0')
 # top power header
 P33 = (BX0 + 380, BY0 + 60); PG = (BX0 + 430, BY0 + 60)
 pinhead(*P33); pinhead(*PG)
@@ -243,30 +244,45 @@ to_right_pin('D14', [(PW, 530), (1660, 530)], SIGCOL[8])
 wire([(PW + 230, 560), (XG_R, 560)], C['gnd'], 5); dot(XG_R, 560, C['gnd'])
 M(PW + 150, 590, 'black → GND', 12, 700)
 
-# IR module (D27)
+# ESP32 G pin next to a row's S pin (each row is G · V · S on the board)
+def board_g(name):
+    y = ry(RROWS.index(name)) + 22
+    pinhead(RXp, y)
+    M(RXp - 20, y + 5, 'G', 12, 800, 'end', '#9fe0c0')
+    return y
+
+
+def gnd_to_board(name, ys, ch):
+    """GND wire from a part (left side, at height ys) to the G pin of that row, running beside the signal."""
+    gy = board_g(name)
+    gx = ch - 14 if ys > gy else ch + 14       # stay on the side that never crosses the signal wire
+    wire([(PW, ys), (gx, ys), (gx, gy), (RXp, gy)], C['gnd'], 5)
+
+
+# IR module (D27): OUT + GND go to the ESP32 row D27, VCC to 3V3
 R(1860, 630, 220, 70, '#1f5fae', '#0d2f5c', 6)
 Cc(1880, 652, 10, '#111', '#000'); Cc(1880, 680, 10, '#e9f0ff', '#777')
 T(1860, 622, 'IR obstacle module', 15, 700)
-pinhead(PW, 665); M(PW + 18, 712, 'OUT', 12, 700)
+pinhead(PW, 665); pinhead(PW, 687)
+M(PW + 6, 654, 'OUT', 11, 700); M(PW + 6, 714, 'GND', 11, 700)
+wire([(PW, 665), (1860, 665)], SIGCOL[9]); wire([(PW, 687), (1860, 687)], C['gnd'], 5)
 to_right_pin('D27', [(PW, 665), (1640, 665)], SIGCOL[9])
-pinhead(2100, 650); pinhead(2100, 680)
-M(2116, 646, 'VCC', 11); M(2116, 696, 'GND', 11)
-wire([(2100, 650), (X33_R, 650)], C['v33'], 5); dot(X33_R, 650, C['v33'])
-wire([(2100, 680), (XG_R, 680)], C['gnd'], 5); dot(XG_R, 680, C['gnd'])
-wire([(PW, 665), (1860, 665)], SIGCOL[9])
+gnd_to_board('D27', 687, 1640)
+pinhead(2100, 665); M(2116, 661, 'VCC', 11)
+wire([(2080, 665), (X33_R, 665)], C['v33'], 5); dot(X33_R, 665, C['v33'])
 
 
 def servo(y, title, pin, ch, col):
     R(1880, y, 170, 80, '#1e4fa8', '#0d2f5c', 6)
     Cc(1925, y + 40, 20, '#f1f1f1', '#666'); R(1925, y + 32, 70, 16, '#f1f1f1', '#666', 8)
     T(1880, y - 8, title, 15, 700)
-    pinhead(PW, y + 40); M(PW + 16, y + 74, 'orange', 12, 700, 'start', '#e8590c')
-    wire([(PW, y + 40), (1880, y + 40)], '#e8590c')
+    pinhead(PW, y + 40); pinhead(PW, y + 62)
+    M(PW + 6, y + 30, 'orange', 11, 700, 'start', '#e8590c'); M(PW + 6, y + 88, 'brown', 11, 700, 'start', '#6b3a0c')
+    wire([(PW, y + 40), (1880, y + 40)], '#e8590c'); wire([(PW, y + 62), (1880, y + 62)], C['gnd'], 5)
     to_right_pin(pin, [(PW, y + 40), (ch, y + 40)], col)
-    pinhead(2100, y + 26); pinhead(2100, y + 56)
-    M(2116, y + 22, 'red', 11); M(2116, y + 72, 'brown', 11)
-    wire([(2050, y + 26), (2100, y + 26), (X5_R, y + 26)], C['v5'], 5); dot(X5_R, y + 26, C['v5'])
-    wire([(2050, y + 56), (2100, y + 56), (XG_R, y + 56)], C['gnd'], 5); dot(XG_R, y + 56, C['gnd'])
+    gnd_to_board(pin, y + 62, ch)
+    pinhead(2100, y + 30); M(2116, y + 26, 'red', 11)
+    wire([(2050, y + 30), (2100, y + 30), (X5_R, y + 30)], C['v5'], 5); dot(X5_R, y + 30, C['v5'])
 
 
 servo(760, 'Servo #2 TRAY (MG90S)', 'D26', 1620, SIGCOL[10])
@@ -280,9 +296,9 @@ T(1860, 1022, 'HC-SR04 ultrasonic (bin level)', 15, 700)
 pinhead(PW, 1060); pinhead(PW, 1100)
 M(PW - 10, 1052, 'TRIG', 12, 700, 'end'); M(PW - 10, 1124, 'ECHO', 12, 700, 'end')
 wire([(PW, 1060), (1860, 1060)], SIGCOL[12]); wire([(PW, 1100), (1860, 1100)], SIGCOL[13])
-to_right_pin('D33', [(PW, 1060), (1580, 1060)], SIGCOL[12])
+to_right_pin('D33', [(PW, 1060), (1570, 1060)], SIGCOL[12])
 # echo: PW -> 1k -> node(1690) -> channel 1560; node -> 2.2k down -> GND
-to_right_pin('D32', [(PW, 1100), (1560, 1100)], SIGCOL[13])
+to_right_pin('D32', [(PW, 1100), (1554, 1100)], SIGCOL[13])
 resistor(1750, 1100, False, '1 kΩ')
 wire([(1690, 1100), (1690, 1190), (XG_R, 1190)], C['gnd'], 5); dot(1690, 1100, SIGCOL[13]); dot(XG_R, 1190, C['gnd'])
 resistor(1690, 1150, True, '2.2 kΩ')
