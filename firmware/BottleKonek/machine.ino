@@ -231,6 +231,15 @@ void machineBegin() {
     Serial.println("LCD not found: check SDA->D21, SCL->D22, VCC->5V, GND");
   }
 
+  // Start-up self-test: red, yellow, green LED one by one, then one beep.
+  // If a light or the beep is missing, check that part's wire and its GND.
+  lcdShow("BottleKonek", "Self-test...");
+  Serial.println("Self-test: red, yellow, green LED, then one beep");
+  const int leds[] = { PIN_LED_RED, PIN_LED_YELLOW, PIN_LED_GREEN };
+  for (int p : leds) { digitalWrite(p, HIGH); delay(400); digitalWrite(p, LOW); }
+  digitalWrite(PIN_BUZZER, HIGH); delay(200); digitalWrite(PIN_BUZZER, LOW);
+  digitalWrite(PIN_LED_GREEN, HIGH);
+
   ledcAttach(PIN_SERVO_GATE, 50, 14);
   ledcAttach(PIN_SERVO_TRAY, 50, 14);
   servoWrite(PIN_SERVO_GATE, GATE_OPEN_DEG);
