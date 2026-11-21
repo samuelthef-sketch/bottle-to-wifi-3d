@@ -264,9 +264,7 @@ void loadSettings() {
   prefs.begin("bk", true);
   cfg.minPerBottle = prefs.getInt("mpb", DEFAULT_MIN_PER_BOTTLE);
   cfg.guestGraceS  = prefs.getInt("grace", DEFAULT_GUEST_GRACE_S);
-  cfg.binFullPct   = prefs.getInt("binpct", DEFAULT_BIN_FULL_PCT);
-  cfg.binEmptyCm   = prefs.getInt("bempty", DEFAULT_BIN_EMPTY_CM);
-  cfg.binFullCm    = prefs.getInt("bfull", DEFAULT_BIN_FULL_CM);
+  cfg.binCapacity  = prefs.getInt("bincap", DEFAULT_BIN_CAPACITY);
   prefs.end();
 }
 
@@ -274,9 +272,7 @@ void saveSettings() {
   prefs.begin("bk", false);
   prefs.putInt("mpb", cfg.minPerBottle);
   prefs.putInt("grace", cfg.guestGraceS);
-  prefs.putInt("binpct", cfg.binFullPct);
-  prefs.putInt("bempty", cfg.binEmptyCm);
-  prefs.putInt("bfull", cfg.binFullCm);
+  prefs.putInt("bincap", cfg.binCapacity);
   prefs.end();
 }
 
@@ -286,6 +282,7 @@ void loadStats() {
   stats.todayBottles = prefs.getUInt("today", 0);
   stats.todayRejects = prefs.getUInt("rej", 0);
   stats.todayYday    = prefs.getInt("yday", -1);
+  stats.binCount     = prefs.getUInt("bin", 0);
   prefs.end();
 }
 
@@ -295,6 +292,7 @@ void saveStats() {
   prefs.putUInt("today", stats.todayBottles);
   prefs.putUInt("rej", stats.todayRejects);
   prefs.putInt("yday", stats.todayYday);
+  prefs.putUInt("bin", stats.binCount);
   prefs.end();
 }
 

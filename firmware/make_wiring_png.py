@@ -167,8 +167,8 @@ def ry(i):
     return ROW0 + i * PITCH
 
 
-used_l = {'D15', 'D4', 'D16', 'D17', 'D21', 'D22'}
-used_r = {'D14', 'D27', 'D26', 'D25', 'D33', 'D32', 'D35', 'D34'}
+used_l = {'D4', 'D16', 'D17', 'D21', 'D22'}
+used_r = {'D14', 'D27', 'D25', 'D33', 'D32', 'D35'}
 for i, n in enumerate(LROWS):
     pinhead(LX, ry(i))
     M(LX + 20, ry(i) + 5, n, 15, 800, 'start', '#ffe066' if n in used_l else '#7d8784')
@@ -198,15 +198,6 @@ def left_v(name):
     pinhead(LX, y); M(LX + 20, y + 5, 'V (5V)', 12, 800, 'start', '#ffb86b')
     return y
 
-
-# ---------------------------------------------------------------- LEFT: push button (D15)
-R(640, 512, 70, 70, '#2a2a2a', '#000', 6); Cc(675, 547, 20, '#111', '#555')
-T(600, 498, 'Push button', 15, 700)
-wire([(710, 527), (760, 527)], '#888', 4)
-to_left_pin('D15', [(710, 540), (900, 540)], SIGCOL[0])
-gb = left_g('D15')
-wire([(710, gb), (LX, gb)], C['gnd'], 5)
-M(720, 512, 'leg 1 → D15', 12, 700, 'start', SIGCOL[0]); M(720, gb + 22, 'leg 2 → G', 12, 700, 'start')
 
 # ---------------------------------------------------------------- LEFT: traffic light (standing, pins on right)
 TLX, TLY = 560, 610
@@ -287,7 +278,7 @@ gnd_to_board('D14', 552, 1660)   # buzzer black
 # IR module (D27): OUT + GND go to the ESP32 row D27, VCC to 3V3
 R(1860, 660, 220, 72, '#1f5fae', '#0d2f5c', 6)
 Cc(1880, 683, 10, '#111', '#000'); Cc(1880, 711, 10, '#e9f0ff', '#777')
-T(1860, 652, 'IR obstacle module', 15, 700)
+T(1860, 652, 'IR sensor: bottle waiting at gate', 15, 700)
 pinhead(PW, 700); pinhead(PW, 722)
 M(PW + 6, 690, 'OUT', 11, 700); M(PW + 6, 748, 'GND', 11, 700)
 wire([(PW, 700), (1860, 700)], SIGCOL[9]); wire([(PW, 722), (1860, 722)], C['gnd'], 5)
@@ -310,14 +301,13 @@ def servo(y, title, pin, ch, col):
     wire([(2050, y + 30), (2100, y + 30), (X5_R, y + 30)], C['v5'], 5); dot(X5_R, y + 30, C['v5'])
 
 
-servo(760, 'Servo #2 TRAY (MG90S)', 'D26', 1620, SIGCOL[10])
-servo(890, 'Servo #1 GATE (MG90S)', 'D25', 1600, SIGCOL[11])
+servo(800, 'Servo GATE (MG90S) at end of PVC', 'D25', 1600, SIGCOL[11])
 
 # HC-SR04 (D33 trig, D32 echo with 1k / 2.2k)
 R(1860, 1030, 240, 100, '#1f5fae', '#0d2f5c', 6)
 for x in (1915, 2045):
     Cc(x, 1080, 34, '#c9ced2', '#555'); Cc(x, 1080, 22, '#7d858a', '#444')
-T(1860, 1022, 'HC-SR04 ultrasonic (bin level)', 15, 700)
+T(1860, 1022, 'HC-SR04: sees bottle drop (below gate)', 15, 700)
 pinhead(PW, 1060); pinhead(PW, 1100)
 M(PW - 10, 1052, 'TRIG', 12, 700, 'end'); M(PW - 10, 1124, 'ECHO', 12, 700, 'end')
 wire([(PW, 1060), (1860, 1060)], SIGCOL[12]); wire([(PW, 1100), (1860, 1100)], SIGCOL[13])
@@ -344,7 +334,7 @@ def sensor(y, title, sub):
 
 
 # BY (PNP) -> D35 : 10k series, 3.3k to GND
-sensor(1260, 'Metal sensor LJ18A3-8-Z/BY (PNP)', 'brown 12 V · blue GND · black signal')
+sensor(1260, 'Metal sensor (LJ18A3-8-Z/BY)', 'brown 12 V · blue GND · black signal')
 pinhead(PW, 1283); M(PW + 6, 1250, 'black', 12, 700)
 to_right_pin('D35', [(PW, 1283), (1540, 1283)], SIGCOL[2])
 resistor(1760, 1283, False, '10 kΩ')
@@ -354,20 +344,6 @@ wire([(1840, 1283), (PW, 1283)], '#222')
 wire([(2140, 1270), (X12_R, 1270)], C['v12'], 5); dot(X12_R, 1270, C['v12'])
 wire([(2140, 1296), (XG_R, 1296)], C['gnd'], 5); dot(XG_R, 1296, C['gnd'])
 M(2150, 1262, 'brown', 11, 700, 'start', '#8a4b14'); M(2150, 1316, 'blue', 11, 700, 'start', '#1f5fae')
-
-# BX (NPN) -> D34 : 1k pull-up to 12V, 10k series, 3.3k to GND
-sensor(1470, 'Metal sensor LJ18A3-8-Z/BX (NPN)', 'brown 12 V · blue GND · black signal')
-pinhead(PW, 1493); M(PW + 6, 1460, 'black', 12, 700)
-to_right_pin('D34', [(PW, 1493), (1520, 1493)], SIGCOL[3])
-wire([(1800, 1493), (1800, 1420), (X12_R, 1420)], C['v12'], 5); dot(1800, 1493, SIGCOL[3]); dot(X12_R, 1420, C['v12'])
-resistor(1800, 1455, True, '1 kΩ')
-resistor(1720, 1493, False, '10 kΩ')
-wire([(1650, 1493), (1650, 1590), (XG_R, 1590)], C['gnd'], 5); dot(1650, 1493, SIGCOL[3]); dot(XG_R, 1590, C['gnd'])
-resistor(1650, 1545, True, '3.3 kΩ')
-wire([(1840, 1493), (PW, 1493)], '#222')
-wire([(2140, 1480), (X12_R, 1480)], C['v12'], 5); dot(X12_R, 1480, C['v12'])
-wire([(2140, 1506), (XG_R, 1506)], C['gnd'], 5); dot(XG_R, 1506, C['gnd'])
-M(2150, 1472, 'brown', 11, 700, 'start', '#8a4b14'); M(2150, 1526, 'blue', 11, 700, 'start', '#1f5fae')
 
 # ---------------------------------------------------------------- notes box
 R(1010, 1500, 560, 150, '#fff6df', '#e3c46a', 10, 1.5)

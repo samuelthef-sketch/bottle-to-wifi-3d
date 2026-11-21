@@ -21,7 +21,6 @@ Phone       clients[MAX_CLIENTS];
 DropSession drop;
 Settings    cfg;
 Stats       stats;
-int         binPct = 0;
 
 // ---------------------------------------------------------------------------
 void setup() {
@@ -129,7 +128,7 @@ void onPhoneDisconnected(const uint8_t *mac) {
   int s = findClientByMac(mac);
   if (s < 0) return;
   Phone &c = clients[s];
-  if (drop.active && drop.slot == s) dropEnd("owner left");
+  if (drop.active && drop.slot == s) dropEnd("owner left", -1);
   if (c.user[0]) {                    // account: pause and save, free the slot
     if (c.online) setOnline(s, false);
     saveClientAccount(s);

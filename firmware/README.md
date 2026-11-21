@@ -52,22 +52,20 @@ that still have minutes. It also runs the bottle machine.
 
 | Part | Pin | ESP32 | Notes |
 |---|---|---|---|
-| 12 V supply | V+ / V− | — | to buck IN, ESP32 DC jack, both metal sensors (brown/blue) |
-| LM2596 buck | OUT+ / OUT− | — | **set to 5.0 V first**; feeds servos, LCD, HC-SR04 |
-| LCD 16×2 (I2C board) | SDA / SCL | D21 / D22 | VCC → 5 V, GND → GND. Contrast = blue screw on the I2C board |
-| Servo gate (MG90S #1) | orange | D25 | red 5 V, brown GND |
-| Servo tray (MG90S #2) | orange | D26 | red 5 V, brown GND |
-| Metal sensor BX (NPN) | black | D34 | 1 kΩ pull-up to 12 V, then 10 kΩ to D34, 3.3 kΩ D34→GND |
-| Metal sensor BY (PNP) | black | D35 | 10 kΩ to D35, 3.3 kΩ D35→GND |
-| IR obstacle module | OUT | D27 | VCC 3V3 |
-| HC-SR04 | TRIG / ECHO | D33 / D32 | ECHO through 1 kΩ, 2.2 kΩ D32→GND · VCC 5 V |
-| Traffic light | G / Y / R | D4 / D16 / D17 | GND to GND |
-| Buzzer | red | D14 | black to GND |
-| Button | one leg | D15 | other leg to GND |
+| Phone charger 5 V 1–2 A | USB-C | USB-C port | powers the ESP32 (DC jack not used) |
+| 12 V supply | V+ / V− | — | to buck IN and the metal sensor (brown/blue) |
+| LM2596 buck | OUT+ / OUT− | — | **set to 5.0 V first**; feeds the servo and HC-SR04 |
+| LCD 16×2 (I2C board) | SDA / SCL | D21 / D22 | VCC → a V pin (5 V), GND → a G pin. Contrast = blue screw |
+| Traffic light | G / Y / R | D4 / D16 / D17 | GND → a G pin |
+| Buzzer | red | D14 | black → G pin |
+| IR sensor (bottle waiting at gate) | OUT | D27 | VCC 3V3, GND → G pin |
+| Gate servo MG90S (end of PVC) | orange | D25 | brown → G pin, **red → buck 5 V** |
+| HC-SR04 (below gate, sees the drop) | TRIG / ECHO | D33 / D32 | ECHO through 1 kΩ, 2.2 kΩ D32→GND · VCC 5 V |
+| Metal sensor LJ18A3-8-Z/BY (PNP) | black | D35 | 10 kΩ to D35, 3.3 kΩ D35→GND · brown 12 V, blue GND |
 
 All grounds join together: power supply V−, buck OUT−, ESP32 GND, sensors.
 
-**Extra parts to buy:** resistors 1 kΩ ×2, 2.2 kΩ ×1, 3.3 kΩ ×2, 10 kΩ ×2,
+**Extra parts to buy:** resistors 1 kΩ ×1, 2.2 kΩ ×1, 3.3 kΩ ×1, 10 kΩ ×1,
 one DC barrel
 plug 5.5×2.1 mm with wires for the ESP32 jack, and a perfboard or terminal blocks.
 

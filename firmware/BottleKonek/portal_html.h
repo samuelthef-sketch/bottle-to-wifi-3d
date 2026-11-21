@@ -99,7 +99,7 @@ function vWelcome(){return brand('Bongabon Senior High School')+'<div class="sta
  '<div class="step"><i>1</i><span>Tap <b>Drop bottles</b>, then insert empty bottles one at a time.</span></div>'+
  '<div class="step"><i>2</i><span>Each accepted bottle adds '+S.mpb+' minutes.</span></div>'+
  '<div class="step"><i>3</i><span>Log in to keep unused minutes for next time.</span></div></div>'+
- '<div style="display:flex;justify-content:space-between;align-items:center">'+machinePill()+'<span class="note">Bin '+S.bin+'% full</span></div></div>'}
+ '<div style="display:flex;justify-content:space-between;align-items:center">'+machinePill()+'<span class="note">Machine '+esc(S.code)+'</span></div></div>'}
 function vGuestOnline(){var on=S.online;return brand('Guest')+'<div class="stack">'+
  '<div class="hero"><div><div class="k">'+(on?'Online · guest':'Guest balance')+'</div><div class="v mono" id="cd">'+mmss(shownSecs)+'</div><div class="hs">'+(on?'left':'ready')+'</div></div>'+bottle(S.secs)+'</div>'+
  '<div class="warnbox"><b>Guest time is not saved.</b> If you leave the WiFi for more than '+(S.grace>=60?Math.round(S.grace/60)+' minute'+(S.grace>=120?'s':''):S.grace+' seconds')+', your time goes back to 0.</div>'+
@@ -122,8 +122,14 @@ function vDrop(){var d=S.drop,f='';
  '<div class="card" style="display:grid;gap:8px;justify-items:center;padding:20px"><div class="lbl">Bottles accepted</div><div class="big">'+d.acc+'</div><div class="mono" style="font-weight:700;color:var(--teal);font-size:18px">+'+d.min+' min</div></div>'+
  '<div class="card" style="text-align:center;background:#e9f5f1"><div style="font-weight:700;font-size:17px">Insert the next bottle</div><div class="note" style="margin-top:4px">One at a time. Empty it first.</div></div>'+
  '<div class="stack" style="gap:8px">'+f+'</div>'+
- '<button class="btn t" onclick="act(\'/api/drop/end\',{},\'Done\')">Done'+(S.user?'':' · start internet')+'</button>'+
- '<p class="note">Ends by itself after '+d.left+' s with no bottle</p></div>'}
+ (d.acc>0?
+   '<div class="card" style="display:grid;gap:10px"><div style="font-weight:700;text-align:center">Done dropping? Your '+d.min+' min:</div>'+
+   '<button class="btn t" onclick="act(\'/api/drop/end\',{use:1},\'Connected. Enjoy!\')">Use now · start internet</button>'+
+   (S.user?'<button class="btn p" onclick="act(\'/api/drop/end\',{use:0},\'Saved to your balance\')">Save for later</button>'
+          :'<button class="btn p" onclick="saveGuest()">Save for later · create account</button>')+'</div>'
+  :'<button class="btn g" onclick="act(\'/api/drop/end\',{use:0},\'Done\')">Cancel</button>')+
+ '<p class="note">Ends by itself after '+d.left+' s with no bottle'+(S.user?' (minutes are saved)':' (internet starts)')+'</p></div>'}
+function saveGuest(){act('/api/drop/end',{use:0}).then(function(){tab='signup';go('auth')})}
 function vAuth(){var su=tab==='signup',g=!S.user&&S.secs>0;
  return '<div class="stack"><div style="display:grid;justify-items:center;gap:8px;padding-top:8px"><img src="/logo.jpg" alt="" style="width:80px;height:80px;border-radius:50%;background:#fff"><div class="nm" style="font-size:22px">Bottle<span>Konek</span></div><div class="note">Excellence begins with character</div></div>'+
  '<div class="tabs"><button class="'+(su?'':'on')+'" onclick="tab=\'login\';render()">Log in</button><button class="'+(su?'on':'')+'" onclick="tab=\'signup\';render()">Sign up</button></div>'+

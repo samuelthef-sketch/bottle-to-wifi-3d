@@ -43,8 +43,7 @@ static String stateJson(int s) {
   j += ",\"online\":" + String(c.online ? "true" : "false");
   j += ",\"mpb\":" + String(cfg.minPerBottle);
   j += ",\"grace\":" + String(cfg.guestGraceS);
-  j += ",\"bin\":" + String(binPct);
-  j += ",\"binFull\":" + String(binPct >= cfg.binFullPct ? "true" : "false");
+  j += ",\"binFull\":" + String(binIsFull() ? "true" : "false");
   j += ",\"code\":\"" MACHINE_CODE "\"";
   j += ",\"mac\":\"" + macTail(c.mac) + "\"";
   j += ",\"machine\":\"" + String(mine ? "mine" : drop.active ? "busy" : "free") + "\"";
@@ -122,7 +121,7 @@ static void apiLogin() {
 static void apiLogout() {
   int s = reqSlot();
   if (s < 0) return sendErr(503, "Reconnect to BottleKonek WiFi");
-  if (drop.active && drop.slot == s) dropEnd("logout");
+  if (drop.active && drop.slot == s) dropEnd("logout", 0);
   unbindUser(s, true);
   sendOk(s);
 }
@@ -147,7 +146,7 @@ static void apiPause() {
 static void apiDropStart() {
   int s = reqSlot();
   if (s < 0) return sendErr(503, "Reconnect to BottleKonek WiFi");
-  if (binPct >= cfg.binFullPct) return sendErr(409, "Bin is full. Please tell the admin.");
+  if (binIsFull()) return sendErr(409, "Bin is full. Please tell the admin.");
   if (drop.active && drop.slot != s) return sendErr(409, "Machine in use. Wait a moment.");
   dropStart(s);
   sendOk(s);
@@ -156,7 +155,8 @@ static void apiDropStart() {
 static void apiDropEnd() {
   int s = reqSlot();
   if (s < 0) return sendErr(503, "Reconnect to BottleKonek WiFi");
-  if (drop.active && drop.slot == s) dropEnd("done");
+  // use=1: start internet now, use=0: keep minutes as balance
+  if (drop.active && drop.slot == s) dropEnd("done", server.arg("use") == "1" ? 1 : 0);
   sendOk(s);
 }
 
@@ -200,13 +200,12 @@ static void apiAdminStats() {
               ",\"c\":" + (c.connected ? "1" : "0") + ",\"s\":" + String(c.secs) + "}";
   }
   phones += "]";
-  String j = "{\"bin\":" + String(binPct) + ",\"today\":" + String(stats.todayBottles) + ",\"rej\":" + String(stats.todayRejects) +
+  String j = "{\"bin\":" + String(stats.binCount) + ",\"today\":" + String(stats.todayBottles) + ",\"rej\":" + String(stats.todayRejects) +
              ",\"total\":" + String(stats.totalBottles) + ",\"online\":" + String(online) + ",\"max\":" + String(MAX_PHONES) +
              ",\"accounts\":" + String(countUsers()) + ",\"sta\":" + (WiFi.status() == WL_CONNECTED ? "true" : "false") +
              ",\"ip\":\"" + WiFi.localIP().toString() + "\",\"up\":" + String(millis() / 1000) +
              ",\"cfg\":{\"mpb\":" + String(cfg.minPerBottle) + ",\"grace\":" + String(cfg.guestGraceS) +
-             ",\"binpct\":" + String(cfg.binFullPct) + ",\"bempty\":" + String(cfg.binEmptyCm) + ",\"bfull\":" + String(cfg.binFullCm) +
-             "},\"phones\":" + phones + "}";
+             ",\"bincap\":" + String(cfg.binCapacity) + "},\"phones\":" + phones + "}";
   sendJson(200, j);
 }
 
@@ -214,11 +213,16 @@ static void apiAdminSettings() {
   if (!isAdmin()) return sendErr(401, "Please log in");
   cfg.minPerBottle = constrain(server.arg("mpb").toInt(), 1, 120);
   cfg.guestGraceS  = constrain(server.arg("grace").toInt(), 0, 3600);
-  cfg.binFullPct   = constrain(server.arg("binpct").toInt(), 50, 100);
-  cfg.binEmptyCm   = constrain(server.arg("bempty").toInt(), 10, 300);
-  cfg.binFullCm    = constrain(server.arg("bfull").toInt(), 2, 100);
-  if (cfg.binFullCm >= cfg.binEmptyCm) return sendErr(400, "Full distance must be smaller than empty distance");
+  cfg.binCapacity  = constrain(server.arg("bincap").toInt(), 5, 1000);
   saveSettings();
+  sendJson(200, "{\"ok\":1}");
+}
+
+static void apiAdminBinEmptied() {
+  if (!isAdmin()) return sendErr(401, "Please log in");
+  stats.binCount = 0;
+  saveStats();
+  Serial.println("Bin emptied (count reset to 0)");
   sendJson(200, "{\"ok\":1}");
 }
 
@@ -282,6 +286,7 @@ void webBegin() {
   server.on("/api/admin/stats", HTTP_GET, apiAdminStats);
   server.on("/api/admin/settings", HTTP_POST, apiAdminSettings);
   server.on("/api/admin/users", HTTP_GET, apiAdminUsers);
+  server.on("/api/admin/bin-emptied", HTTP_POST, apiAdminBinEmptied);
   server.on("/api/admin/user", HTTP_POST, apiAdminUser);
 
   server.onNotFound(redirectToPortal);     // generate_204, hotspot-detect.html, etc.

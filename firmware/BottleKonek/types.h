@@ -47,9 +47,7 @@ struct UserRec { String h, s; int32_t b = 0; uint32_t t = 0, m = 0, c = 0; };
 struct Settings {
   int minPerBottle;
   int guestGraceS;
-  int binFullPct;
-  int binEmptyCm;
-  int binFullCm;
+  int binCapacity;      // bottles until the bin counts as full
 };
 
 struct Stats {
@@ -57,6 +55,7 @@ struct Stats {
   uint32_t todayBottles;
   uint32_t todayRejects;
   int      todayYday;     // day-of-year the "today" counters belong to
+  uint32_t binCount;      // bottles dropped since the bin was last emptied
 };
 
 // ---- globals (defined in BottleKonek.ino) ----
@@ -64,7 +63,6 @@ extern Phone       clients[MAX_CLIENTS];
 extern DropSession drop;
 extern Settings    cfg;
 extern Stats       stats;
-extern int         binPct;
 
 // ---- network.ino ----
 void networkBegin();
@@ -117,8 +115,9 @@ void machineLoop();
 void lcdShow(const String &l1, const String &l2);
 void beep(int times);
 bool dropStart(int slot);
-void dropEnd(const char *why);
+void dropEnd(const char *why, int useNow);   // useNow: 1 = start internet, 0 = save, -1 = automatic
 bool machineBusy();
+bool binIsFull();
 
 // ---- web.ino ----
 void webBegin();

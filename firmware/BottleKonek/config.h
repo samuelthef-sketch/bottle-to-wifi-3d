@@ -15,52 +15,48 @@
 // ---------- 3. ADMIN PAGE (http://192.168.4.1/admin) -----------------------
 #define ADMIN_PASSWORD      "bshs-admin-2026"    // change this!
 
-// ---------- 4. RULES (admin page can change these later) -------------------
+// ---------- 4. RULES (admin page can change minutes and grace later) -------
 #define DEFAULT_MIN_PER_BOTTLE  5     // minutes added per accepted bottle
 #define DEFAULT_GUEST_GRACE_S   60    // guest time resets after this many seconds away
-#define DEFAULT_BIN_FULL_PCT    95    // stop accepting bottles at this bin level
+#define DEFAULT_BIN_CAPACITY    70    // bin counts as FULL after this many bottles (admin can change)
 #define DROP_IDLE_TIMEOUT_S     30    // drop session ends after this long with no bottle
 #define REMEMBER_DAYS           30    // "Remember this phone" lasts this long
 #define MACHINE_CODE            "4821"
 
-// ---------- 5. BIN SIZE (measure with a ruler, in cm) -----------------------
-#define DEFAULT_BIN_EMPTY_CM    60    // ultrasonic to bin bottom when empty
-#define DEFAULT_BIN_FULL_CM     8     // ultrasonic to top of bottles when full
-
-// ---------- 6. PINS (match the wiring diagram) ------------------------------
+// ---------- 5. PINS (match the wiring diagram) ------------------------------
 // 16x2 LCD with I2C board on its back (GND, VCC, SDA, SCL).
 // Its address (0x27 or 0x3F) is found automatically at start-up.
 #define PIN_I2C_SDA  21
 #define PIN_I2C_SCL  22
 
-#define PIN_SERVO_GATE  25    // MG90S #1: blocks the chute while checking
-#define PIN_SERVO_TRAY  26    // MG90S #2: tilts item to bin or back to user
+#define PIN_SERVO_GATE  25    // MG90S: swinging gate at the end of the PVC chute
 
-#define PIN_METAL_BX    34    // LJ18A3-8-Z/BX (NPN) through pull-up + divider. LOW = metal
-#define PIN_METAL_BY    35    // LJ18A3-8-Z/BY (PNP) through divider.          HIGH = metal
-#define PIN_IR          27    // IR obstacle module OUT.                       LOW = item there
-#define PIN_US_TRIG     33    // HC-SR04 TRIG
+#define PIN_IR          27    // IR obstacle module OUT at the gate. LOW = bottle waiting
+#define PIN_METAL       35    // ONE metal sensor (LJ18A3-8-Z/BY, PNP) through 10k/3.3k divider
+#define METAL_ACTIVE_HIGH 1   // BY (PNP) = 1.  If you use the BX (NPN) sensor instead, set 0
+#define PIN_US_TRIG     33    // HC-SR04 below the gate: sees the bottle fall through
 #define PIN_US_ECHO     32    // HC-SR04 ECHO through 1k/2.2k divider
 
 #define PIN_LED_RED     17    // traffic light module R
 #define PIN_LED_YELLOW  16    // traffic light module Y
 #define PIN_LED_GREEN    4    // traffic light module G
 #define PIN_BUZZER      14    // active buzzer + (black wire to GND)
-#define PIN_BUTTON      15    // push button to GND: ends a drop session
 
-// Optional: a capacitive sensor LJC18A3-B-Z/BY wired like the BY sensor.
-// Set to a free pin (e.g. 13) to require plastic; leave -1 if you don't have one.
+// Optional: a capacitive sensor LJC18A3-B-Z/BY wired like the metal sensor.
+// Set to a free pin (e.g. 34) to require plastic; leave -1 if you don't have one.
 #define PIN_PLASTIC     -1    // HIGH = plastic
 
-// ---------- 7. SERVO ANGLES (adjust after mounting) -------------------------
-#define GATE_OPEN_DEG     0
-#define GATE_CLOSED_DEG   90
-#define TRAY_HOLD_DEG     90
-#define TRAY_BIN_DEG      160   // tilts toward the bin
-#define TRAY_RETURN_DEG   20    // tilts toward the return slot
+// ---------- 6. GATE SERVO ANGLES (adjust after mounting) --------------------
+#define GATE_CLOSED_DEG   0     // gate blocks the end of the PVC pipe
+#define GATE_OPEN_DEG     90    // gate swings open, bottle falls
+
+// ---------- 7. DROP DETECTION (ultrasonic below the gate) -------------------
+// At start-up the ESP32 measures the empty distance across the drop path.
+// A bottle falling past makes the distance shorter by at least DROP_DELTA_CM.
+#define DROP_DELTA_CM     4
 
 // ---------- 8. TIMING (ms) --------------------------------------------------
-#define ITEM_DEBOUNCE_MS  200   // IR must see the item this long
-#define CHECK_TIME_MS     800   // how long metal sensors are watched
-#define DROP_CONFIRM_MS   2000  // IR must clear within this time after tilting to bin
-#define TRAY_MOVE_MS      700
+#define ITEM_DEBOUNCE_MS  200   // IR must see the bottle this long
+#define CHECK_TIME_MS     800   // how long the metal sensor is watched
+#define DROP_WAIT_MS      3000  // gate stays open this long waiting for the drop
+#define GATE_CLOSE_DELAY  600   // keep the gate open a bit after the drop
