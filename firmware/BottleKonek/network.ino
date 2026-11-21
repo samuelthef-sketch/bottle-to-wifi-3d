@@ -22,6 +22,7 @@ static const IPAddress AP_IP(192, 168, 4, 1);
 static const IPAddress AP_MASK(255, 255, 255, 0);
 static const IPAddress AP_LEASE_START(192, 168, 4, 2);
 static uint32_t apIpRaw;
+static bool     testMode = false;   // true when MAIN_WIFI_SSID is not filled in
 
 // ---------------------------------------------------------------------------
 //  Packet filter
@@ -151,8 +152,11 @@ static void onWiFiEvent(arduino_event_id_t e, arduino_event_info_t info) {
       ev.type = 2; memcpy(ev.mac, info.wifi_ap_stadisconnected.mac, 6); xQueueSend(evq, &ev, 0); break;
     case ARDUINO_EVENT_WIFI_STA_GOT_IP:
       Serial.print("Main WiFi connected. ESP32 IP: "); Serial.println(WiFi.localIP()); break;
-    case ARDUINO_EVENT_WIFI_STA_DISCONNECTED:
-      Serial.println("Main WiFi lost, reconnecting..."); break;
+    case ARDUINO_EVENT_WIFI_STA_DISCONNECTED: {
+      static uint32_t lastMsg = 0;          // print at most every 10 s
+      if (millis() - lastMsg > 10000) { lastMsg = millis(); Serial.println("Main WiFi not connected, retrying... (check name/password in config.h)"); }
+      break;
+    }
     default: break;
   }
 }
@@ -256,11 +260,17 @@ void networkBegin() {
   WiFi.softAPConfig(AP_IP, AP_IP, AP_MASK, AP_LEASE_START, AP_IP);   // phones use us as DNS
   WiFi.softAP(PORTAL_WIFI_NAME, nullptr, 1, 0, MAX_PHONES);
 
-  WiFi.setAutoReconnect(true);
-  WiFi.begin(MAIN_WIFI_SSID, MAIN_WIFI_PASSWORD);
-  Serial.print("Joining main WiFi \"" MAIN_WIFI_SSID "\"");
-  for (int i = 0; i < 40 && WiFi.status() != WL_CONNECTED; i++) { delay(250); Serial.print("."); }
-  Serial.println(WiFi.status() == WL_CONNECTED ? " OK" : " not yet (will keep trying)");
+  if (strcmp(MAIN_WIFI_SSID, "PUT_MAIN_WIFI_NAME_HERE") == 0 || strlen(MAIN_WIFI_SSID) == 0) {
+    // Main WiFi not filled in yet: run the hotspot + website only (no internet), good for testing parts
+    testMode = true;
+    Serial.println("TEST MODE: main WiFi name not set in config.h. Hotspot and website work, no internet.");
+  } else {
+    WiFi.setAutoReconnect(true);
+    WiFi.begin(MAIN_WIFI_SSID, MAIN_WIFI_PASSWORD);
+    Serial.print("Joining main WiFi \"" MAIN_WIFI_SSID "\"");
+    for (int i = 0; i < 40 && WiFi.status() != WL_CONNECTED; i++) { delay(250); Serial.print("."); }
+    Serial.println(WiFi.status() == WL_CONNECTED ? " OK" : " not yet (will keep trying)");
+  }
 
   if (!WiFi.AP.enableNAPT(true)) Serial.println("WARNING: could not enable internet sharing (NAPT)");
   if (!installFilter()) Serial.println("WARNING: packet filter not installed");
