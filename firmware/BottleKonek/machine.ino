@@ -6,9 +6,10 @@
 //   metal (or no drop session) -> tray tilts to return slot, red LED, 2 beeps
 //   ok -> tray tilts to bin, IR must clear within 2 s -> +minutes, 1 beep
 // ============================================================================
-#include <LiquidCrystal.h>
+#include <Wire.h>
+#include <LiquidCrystal_I2C.h>
 
-static LiquidCrystal lcd(PIN_LCD_RS, PIN_LCD_E, PIN_LCD_D4, PIN_LCD_D5, PIN_LCD_D6, PIN_LCD_D7);
+static LiquidCrystal_I2C *lcd = nullptr;   // created in machineBegin() once the address is known
 
 enum MState { M_IDLE, M_CHECK, M_TO_BIN, M_BACK, M_RETURN, M_RETURN_WAIT };
 static MState   mstate = M_IDLE;
@@ -40,8 +41,9 @@ void lcdShow(const String &l1, const String &l2) {
   while (b.length() < 16) b += ' ';
   if (a == lcdL1 && b == lcdL2) return;
   lcdL1 = a; lcdL2 = b;
-  lcd.setCursor(0, 0); lcd.print(a);
-  lcd.setCursor(0, 1); lcd.print(b);
+  if (!lcd) return;
+  lcd->setCursor(0, 0); lcd->print(a);
+  lcd->setCursor(0, 1); lcd->print(b);
 }
 
 static void lcdTemp(const String &l1, const String &l2, uint32_t ms) {
@@ -211,8 +213,23 @@ void machineBegin() {
   pinMode(PIN_US_ECHO, INPUT);
   digitalWrite(PIN_LED_GREEN, HIGH);
 
-  lcd.begin(16, 2);
-  lcd.clear();
+  // find the LCD's I2C board (usually 0x27, some are 0x3F)
+  Wire.begin(PIN_I2C_SDA, PIN_I2C_SCL);
+  uint8_t addr = 0;
+  const uint8_t tryAddr[] = { 0x27, 0x3F, 0x20, 0x38 };
+  for (uint8_t a : tryAddr) {
+    Wire.beginTransmission(a);
+    if (Wire.endTransmission() == 0) { addr = a; break; }
+  }
+  if (addr) {
+    lcd = new LiquidCrystal_I2C(addr, 16, 2);
+    lcd->init();
+    lcd->backlight();
+    lcd->clear();
+    Serial.printf("LCD found at I2C address 0x%02X\n", addr);
+  } else {
+    Serial.println("LCD not found: check SDA->D21, SCL->D22, VCC->5V, GND");
+  }
 
   ledcAttach(PIN_SERVO_GATE, 50, 14);
   ledcAttach(PIN_SERVO_TRAY, 50, 14);

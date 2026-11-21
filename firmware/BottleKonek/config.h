@@ -28,14 +28,10 @@
 #define DEFAULT_BIN_FULL_CM     8     // ultrasonic to top of bottles when full
 
 // ---------- 6. PINS (match the wiring diagram) ------------------------------
-// 16x2 LCD, wired directly (option A). RW pin goes to GND.
-// Pins follow the wiring diagram (wiring.png) so the wires do not cross.
-#define PIN_LCD_RS   19
-#define PIN_LCD_E    18
-#define PIN_LCD_D4    5
-#define PIN_LCD_D5   17
-#define PIN_LCD_D6   16
-#define PIN_LCD_D7    4
+// 16x2 LCD with I2C board on its back (GND, VCC, SDA, SCL).
+// Its address (0x27 or 0x3F) is found automatically at start-up.
+#define PIN_I2C_SDA  21
+#define PIN_I2C_SCL  22
 
 #define PIN_SERVO_GATE  25    // MG90S #1: blocks the chute while checking
 #define PIN_SERVO_TRAY  26    // MG90S #2: tilts item to bin or back to user
@@ -46,9 +42,9 @@
 #define PIN_US_TRIG     33    // HC-SR04 TRIG
 #define PIN_US_ECHO     32    // HC-SR04 ECHO through 1k/2.2k divider
 
-#define PIN_LED_RED     21    // traffic light module R
-#define PIN_LED_YELLOW  22    // traffic light module Y
-#define PIN_LED_GREEN   23    // traffic light module G
+#define PIN_LED_RED     17    // traffic light module R
+#define PIN_LED_YELLOW  16    // traffic light module Y
+#define PIN_LED_GREEN    4    // traffic light module G
 #define PIN_BUZZER      14    // active buzzer + (black wire to GND)
 #define PIN_BUTTON      15    // push button to GND: ends a drop session
 

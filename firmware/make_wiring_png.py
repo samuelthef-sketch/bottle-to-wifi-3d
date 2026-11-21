@@ -159,7 +159,7 @@ def ry(i):
     return ROW0 + i * PITCH
 
 
-used_l = {'D15', 'D4', 'D16', 'D17', 'D5', 'D18', 'D19', 'D21', 'D22', 'D23'}
+used_l = {'D15', 'D4', 'D16', 'D17', 'D21', 'D22'}
 used_r = {'D14', 'D27', 'D26', 'D25', 'D33', 'D32', 'D35', 'D34'}
 for i, n in enumerate(LROWS):
     pinhead(LX, ry(i))
@@ -187,62 +187,48 @@ to_left_pin('D15', [(710, 540), (900, 540)], SIGCOL[0])
 wire([(640, 560), (XG_L, 560)], C['gnd'], 5); dot(XG_L, 560, C['gnd'])
 M(720, 512, 'leg 1 → D15', 12, 700, 'start', SIGCOL[0]); M(560, 552, 'leg 2 → GND', 12, 700, 'end')
 
-# ---------------------------------------------------------------- LEFT: LCD 16x2, standing on its side, pins on right edge
-LCDX, LCDY = 300, 640
-R(LCDX, LCDY, 230, 430, '#2e7d32', '#14451a', 8)
-R(LCDX + 40, LCDY + 30, 120, 370, '#1b3a8a', '#0c1d4a', 4)
-o.append(f'<text x="{LCDX+100}" y="{LCDY+215}" font-size="26" font-weight="700" fill="#cfe0ff" font-family="JetBrains Mono,monospace" text-anchor="middle" transform="rotate(90 {LCDX+100} {LCDY+215})">BottleKonek 4821</text>')
-T(LCDX, LCDY - 14, '16×2 LCD (turned sideways)', 16, 700)
-LPINS = ['K', 'A', 'D7', 'D6', 'D5', 'D4', 'D3', 'D2', 'D1', 'D0', 'E', 'RW', 'RS', 'VO', 'VDD', 'GND']
-LPN = [16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]
-PX = LCDX + 230
-py = {}
-for i, n in enumerate(LPINS):
-    y = LCDY + 22 + i * 25
-    py[n] = y
-    pinhead(PX - 12, y)
-    M(PX - 28, y + 5, f'{LPN[i]} {n}', 12, 700, 'end', '#e8f5e9')
-# signal wires
-for k, (n, pin, x) in enumerate([('D7', 'D4', 800), ('D6', 'D16', 820), ('D5', 'D17', 840), ('D4', 'D5', 860),
-                                 ('E', 'D18', 880), ('RS', 'D19', 900)]):
-    to_left_pin(pin, [(PX - 12, py[n]), (x, py[n])], SIGCOL[1 + k])
-# power from LCD: K -> GND (over the top), A -> 5V
-wire([(PX - 12, py['K']), (PX + 14, py['K']), (PX + 14, LCDY - 32), (XG_L, LCDY - 32)], C['gnd'], 5); dot(XG_L, LCDY - 32, C['gnd'])
-wire([(PX - 12, py['A']), (PX + 30, py['A']), (PX + 30, LCDY - 46), (X5_L, LCDY - 46)], C['v5'], 5); dot(X5_L, LCDY - 46, C['v5'])
-# bottom pins
-wire([(PX - 12, py['RW']), (PX + 12, py['RW']), (PX + 12, LCDY + 455), (XG_L, LCDY + 455)], C['gnd'], 5); dot(XG_L, LCDY + 455, C['gnd'])
-wire([(PX - 12, py['VDD']), (PX + 28, py['VDD']), (PX + 28, LCDY + 470), (X5_L, LCDY + 470)], C['v5'], 5); dot(X5_L, LCDY + 470, C['v5'])
-wire([(PX - 12, py['GND']), (PX + 20, py['GND']), (PX + 20, LCDY + 485), (XG_L, LCDY + 485)], C['gnd'], 5); dot(XG_L, LCDY + 485, C['gnd'])
-# potentiometer (bottom-left, pins on its right side)
-POTX, POTY = 120, 1430
-R(POTX, POTY, 110, 90, '#1f5fae', '#0d2f5c', 8); Cc(POTX + 40, POTY + 45, 26, '#e7e7e7', '#555'); o.append(f'<line x1="{POTX+40}" y1="{POTY+25}" x2="{POTX+40}" y2="{POTY+45}" stroke="#555" stroke-width="4"/>')
-T(POTX, POTY + 140, '10 kΩ pot (screen contrast)', 15, 700)
-for i, n in enumerate(['5V', 'VO', 'GND']):
-    pinhead(POTX + 130, POTY + 15 + i * 30)
-    M(POTX + 106, POTY + 19 + i * 30, n, 11, 700, 'end', '#ffffff')
-wire([(PX - 12, py['VO']), (PX + 44, py['VO']), (PX + 44, POTY + 45), (POTX + 130, POTY + 45)], SIGCOL[7])
-wire([(POTX + 130, POTY + 15), (POTX + 150, POTY + 15), (POTX + 150, POTY - 14), (X5_L, POTY - 14)], C['v5'], 5); dot(X5_L, POTY - 14, C['v5'])
-wire([(POTX + 130, POTY + 75), (POTX + 150, POTY + 75), (POTX + 150, POTY + 110), (XG_L, POTY + 110)], C['gnd'], 5); dot(XG_L, POTY + 110, C['gnd'])
+# ---------------------------------------------------------------- LEFT: traffic light (standing, pins on right)
+TLX, TLY = 560, 610
+R(TLX, TLY, 80, 196, '#222', '#000', 12)
+tl = [('G', 'D4', '#2f9e44'), ('Y', 'D16', '#f2c200'), ('R', 'D17', '#e03131')]
+for n, pin, col in tl:
+    y = ry(LROWS.index(pin))
+    Cc(TLX + 40, y, 21, col, '#000')
+    pinhead(TLX + 100, y); M(TLX + 116, y - 12, n, 12, 700)
+    to_left_pin(pin, [(TLX + 100, y), (TLX + 100, y)], col)
+gnd_y = ry(LROWS.index('D17')) + 52
+pinhead(TLX + 100, gnd_y); M(TLX + 116, gnd_y - 12, 'GND', 12, 700)
+wire([(TLX + 100, gnd_y), (TLX + 120, gnd_y), (TLX + 120, gnd_y + 42), (XG_L, gnd_y + 42)], C['gnd'], 5); dot(XG_L, gnd_y + 42, C['gnd'])
+T(TLX - 10, TLY - 14, 'Traffic light module', 15, 700)
 
-# ---------------------------------------------------------------- LEFT: traffic light (lying down, pins on top)
-TLX, TLY = 620, 1385
-R(TLX, TLY, 250, 70, '#222', '#000', 10)
-for i, c in enumerate(['#e03131', '#f2c200', '#2f9e44']):
-    Cc(TLX + 140 + i * 45, TLY + 35, 18, c, '#000')
-T(TLX, TLY + 98, 'Traffic light module', 15, 700)
-tx = {'GND': 650, 'R': 680, 'Y': 710, 'G': 740}
-for n, x in tx.items():
-    pinhead(x, TLY - 12); M(x, TLY + 22, n, 11, 700, 'middle', '#ffffff')
-PY0 = TLY - 12
-wire([(tx['R'], PY0), (tx['R'], 1000), (915, 1000), (915, ry(LROWS.index('D21'))), (LX, ry(LROWS.index('D21')))], '#e03131')
-wire([(tx['Y'], PY0), (tx['Y'], ry(LROWS.index('D22'))), (LX, ry(LROWS.index('D22')))], '#d4a800')
-wire([(tx['G'], PY0), (tx['G'], ry(LROWS.index('D23'))), (LX, ry(LROWS.index('D23')))], '#2f9e44')
-# GND: hop over the VO wire
-gy = TLY - 50
-wire([(tx['GND'], PY0), (tx['GND'], gy), (PX + 56, gy)], C['gnd'], 5)
-o.append(f'<path d="M {PX+56} {gy} A 12 12 0 0 0 {PX+32} {gy}" fill="none" stroke="#ffffff" stroke-width="9"/>')
-o.append(f'<path d="M {PX+56} {gy} A 12 12 0 0 0 {PX+32} {gy}" fill="none" stroke="{C['gnd']}" stroke-width="5"/>')
-wire([(PX + 32, gy), (XG_L, gy)], C['gnd'], 5); dot(XG_L, gy, C['gnd'])
+# ---------------------------------------------------------------- LEFT: 16x2 LCD with I2C board (back view)
+LCDX, LCDY = 170, 930
+R(LCDX, LCDY, 440, 180, '#2e7d32', '#14451a', 10)
+for x, y in [(LCDX + 16, LCDY + 16), (LCDX + 424, LCDY + 16), (LCDX + 16, LCDY + 164), (LCDX + 424, LCDY + 164)]:
+    Cc(x, y, 8, '#c9a227', '#7a5a00', 2)
+Cc(LCDX + 150, LCDY + 100, 28, '#111', '#000')
+# the black I2C board on the back
+R(LCDX + 230, LCDY + 30, 210, 110, '#141414', '#000', 6)
+R(LCDX + 290, LCDY + 60, 50, 50, '#2b2b2b', '#555', 3)
+R(LCDX + 360, LCDY + 46, 36, 36, '#1f5fae', '#0d2f5c', 4); Cc(LCDX + 378, LCDY + 64, 10, '#e7e7e7', '#555')
+o.append(f'<line x1="{LCDX+371}" y1="{LCDY+64}" x2="{LCDX+385}" y2="{LCDY+64}" stroke="#555" stroke-width="3"/>')
+M(LCDX + 378, LCDY + 100, 'contrast', 11, 700, 'middle', '#9fc2ff')
+M(LCDX + 378, LCDY + 114, 'screw', 11, 700, 'middle', '#9fc2ff')
+R(LCDX + 240, LCDY + 36, 22, 12, '#f2c200', '#8a6d00', 2)
+M(LCDX + 270, LCDY + 47, 'LED jumper (keep on)', 10, 600, 'start', '#f2c200')
+T(LCDX, LCDY - 16, '16×2 LCD, back side (I2C board)', 16, 700)
+lp = {}
+for i, n in enumerate(['GND', 'VCC', 'SDA', 'SCL']):
+    y = LCDY + 50 + i * 26
+    lp[n] = y
+    pinhead(LCDX + 452, y); M(LCDX + 432, y + 5, n, 11.5, 700, 'end', '#e8f5e9')
+PX = LCDX + 452
+to_left_pin('D21', [(PX, lp['SDA']), (790, lp['SDA'])], SIGCOL[1])
+to_left_pin('D22', [(PX, lp['SCL']), (810, lp['SCL'])], SIGCOL[3])
+M(PX + 14, lp['SDA'] - 8, 'SDA', 11, 700, 'start', SIGCOL[1])
+M(PX + 14, lp['SCL'] + 18, 'SCL', 11, 700, 'start', SIGCOL[3])
+wire([(PX, lp['GND']), (PX + 16, lp['GND']), (PX + 16, LCDY - 40), (XG_L, LCDY - 40)], C['gnd'], 5); dot(XG_L, LCDY - 40, C['gnd'])
+wire([(PX, lp['VCC']), (PX + 34, lp['VCC']), (PX + 34, LCDY - 54), (X5_L, LCDY - 54)], C['v5'], 5); dot(X5_L, LCDY - 54, C['v5'])
 
 # ---------------------------------------------------------------- RIGHT side parts
 CX = 1760            # left edge of right-side parts

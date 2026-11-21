@@ -28,7 +28,8 @@ that still have minutes. It also runs the bottle machine.
    `https://espressif.github.io/arduino-esp32/package_esp32_index.json`
 3. **Tools → Board → Boards Manager**, search **esp32**, install
    **esp32 by Espressif Systems, version 3.x** (3.0.0 or newer is required).
-4. **Library Manager**: install **LiquidCrystal** (by Arduino). Nothing else is
+4. **Library Manager**: install **LiquidCrystal I2C** (by Frank de Brabander). If the IDE
+   warns it "may be incompatible" with ESP32, ignore that; it works. Nothing else is
    needed; WiFi, WebServer, LittleFS and Preferences come with the ESP32 board package.
 
 ## 2. Edit `config.h`
@@ -53,26 +54,27 @@ that still have minutes. It also runs the bottle machine.
 |---|---|---|---|
 | 12 V supply | V+ / V− | — | to buck IN, ESP32 DC jack, both metal sensors (brown/blue) |
 | LM2596 buck | OUT+ / OUT− | — | **set to 5.0 V first**; feeds servos, LCD, HC-SR04 |
-| LCD 16×2 | RS, E, D4, D5, D6, D7 | D19, D18, D5, D17, D16, D4 | VSS, RW, K → GND · VDD, A → 5 V · VO → pot middle |
+| LCD 16×2 (I2C board) | SDA / SCL | D21 / D22 | VCC → 5 V, GND → GND. Contrast = blue screw on the I2C board |
 | Servo gate (MG90S #1) | orange | D25 | red 5 V, brown GND |
 | Servo tray (MG90S #2) | orange | D26 | red 5 V, brown GND |
 | Metal sensor BX (NPN) | black | D34 | 1 kΩ pull-up to 12 V, then 10 kΩ to D34, 3.3 kΩ D34→GND |
 | Metal sensor BY (PNP) | black | D35 | 10 kΩ to D35, 3.3 kΩ D35→GND |
 | IR obstacle module | OUT | D27 | VCC 3V3 |
 | HC-SR04 | TRIG / ECHO | D33 / D32 | ECHO through 1 kΩ, 2.2 kΩ D32→GND · VCC 5 V |
-| Traffic light | R / Y / G | D21 / D22 / D23 | GND to GND |
+| Traffic light | G / Y / R | D4 / D16 / D17 | GND to GND |
 | Buzzer | red | D14 | black to GND |
 | Button | one leg | D15 | other leg to GND |
 
 All grounds join together: power supply V−, buck OUT−, ESP32 GND, sensors.
 
 **Extra parts to buy:** resistors 1 kΩ ×2, 2.2 kΩ ×1, 3.3 kΩ ×2, 10 kΩ ×2,
-one 10 kΩ potentiometer (or a 1 kΩ resistor for LCD contrast), one DC barrel
+one DC barrel
 plug 5.5×2.1 mm with wires for the ESP32 jack, and a perfboard or terminal blocks.
 
 ## 5. First test (before building the cabinet)
 
-1. Power on. LCD shows **BottleKonek 4821**, green LED on.
+1. Power on. LCD shows **BottleKonek 4821**, green LED on. Blank or only boxes on
+   the LCD: turn the blue screw on its I2C board. Serial Monitor tells you if the LCD was found.
 2. Serial Monitor shows `Main WiFi connected`.
 3. On a phone, join **BottleKonek WiFi**. The sign-in page should pop up by itself.
    If not, open any `http://` site or `http://192.168.4.1`.
