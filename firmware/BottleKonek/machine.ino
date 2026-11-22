@@ -32,13 +32,39 @@ bool binIsFull() { return stats.binCount >= (uint32_t)cfg.binCapacity; }
 // ---------------------------------------------------------------------------
 //  Servo (LEDC PWM, 50 Hz). MG90S: 500-2400 us
 // ---------------------------------------------------------------------------
+static void servoPulse(int pin, uint32_t us) { ledcWrite(pin, us * 16383UL / 20000UL); }
 static void servoWrite(int pin, int deg) {
   deg = constrain(deg, 0, 180);
-  uint32_t us = 500 + (uint32_t)deg * 1900 / 180;
-  ledcWrite(pin, us * 16383UL / 20000UL);
+  servoPulse(pin, 500 + (uint32_t)deg * 1900 / 180);
 }
-static void gateOpen()  { servoWrite(PIN_SERVO_GATE, GATE_OPEN_DEG); }
-static void gateClose() { servoWrite(PIN_SERVO_GATE, GATE_CLOSED_DEG); }
+
+static bool     gateIsOpen = false;   // power on with the gate CLOSED
+static uint32_t gateStopAt = 0;       // 360 servo: when to stop spinning
+
+// 360-degree servo: spin one way for `ms`, then stop (no signal = no movement).
+static void gateSpin(int dir, uint32_t ms) {
+  servoPulse(PIN_SERVO_GATE, 1500 + dir * GATE_SPEED_US);
+  gateStopAt = millis() + ms;
+  if (gateStopAt == 0) gateStopAt = 1;
+}
+static void gateOpen() {
+  if (gateIsOpen) return;               // never spin further than open
+  gateIsOpen = true;
+  if (SERVO_360) gateSpin(GATE_OPEN_DIR, GATE_OPEN_MS);
+  else servoWrite(PIN_SERVO_GATE, GATE_OPEN_DEG);
+}
+static void gateClose() {
+  if (!gateIsOpen) return;              // already closed: do not move
+  gateIsOpen = false;
+  if (SERVO_360) gateSpin(-GATE_OPEN_DIR, GATE_CLOSE_MS);
+  else servoWrite(PIN_SERVO_GATE, GATE_CLOSED_DEG);
+}
+static void gateLoop() {
+  if (gateStopAt && (int32_t)(millis() - gateStopAt) >= 0) {
+    ledcWrite(PIN_SERVO_GATE, 0);       // stop: no pulses at all
+    gateStopAt = 0;
+  }
+}
 
 // ---------------------------------------------------------------------------
 //  LCD: status screen + short messages
@@ -263,7 +289,9 @@ void machineBegin() {
   digitalWrite(PIN_LED_GREEN, HIGH);
 
   ledcAttach(PIN_SERVO_GATE, 50, 14);
-  gateClose();
+  if (SERVO_360) ledcWrite(PIN_SERVO_GATE, 0);              // 360 servo: stand still
+  else servoWrite(PIN_SERVO_GATE, GATE_CLOSED_DEG);
+  gateIsOpen = false;
   calibrateDrop();                           // keep the drop path empty while starting up
 }
 
@@ -331,6 +359,7 @@ void machineLoop() {
   if (drop.active && mstate == M_IDLE && now - drop.lastActivityMs > DROP_IDLE_TIMEOUT_S * 1000UL)
     dropEnd("no bottle for 30 s", -1);
 
+  gateLoop();
   outputsLoop();
   lcdStatusScreen();
 }

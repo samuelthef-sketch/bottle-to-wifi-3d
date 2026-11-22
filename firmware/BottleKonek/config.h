@@ -46,9 +46,19 @@
 // Set to a free pin (e.g. 34) to require plastic; leave -1 if you don't have one.
 #define PIN_PLASTIC     -1    // HIGH = plastic
 
-// ---------- 6. GATE SERVO ANGLES (adjust after mounting) --------------------
-#define GATE_CLOSED_DEG   0     // gate blocks the end of the PVC pipe
-#define GATE_OPEN_DEG     90    // gate swings open, bottle falls
+// ---------- 6. GATE SERVO ---------------------------------------------------
+// Your MG90S is the 360-degree (continuous) type: it cannot go to an angle,
+// it spins while it gets a signal. The code spins it for a short time to open,
+// stops, and spins it back the same time to close.
+// Before powering on, turn the gate by hand to the CLOSED position.
+#define SERVO_360         1     // 1 = 360-degree servo (yours). 0 = normal 180-degree servo
+#define GATE_OPEN_MS      300   // how long it spins to swing open (tune: bigger = opens wider)
+#define GATE_CLOSE_MS     300   // how long it spins back to close (make equal or tune)
+#define GATE_SPEED_US     250   // spin speed (100 = slow, 400 = fast)
+#define GATE_OPEN_DIR     1     // 1 or -1: flip if the gate opens the wrong way
+// Only used when SERVO_360 is 0 (180-degree servo):
+#define GATE_CLOSED_DEG   0
+#define GATE_OPEN_DEG     90
 
 // ---------- 7. DROP DETECTION (ultrasonic below the gate) -------------------
 // At start-up the ESP32 measures the empty distance across the drop path.
