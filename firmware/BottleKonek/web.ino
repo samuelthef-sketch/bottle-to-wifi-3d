@@ -44,6 +44,7 @@ static String stateJson(int s) {
   j += ",\"mpb\":" + String(cfg.minPerBottle);
   j += ",\"grace\":" + String(cfg.guestGraceS);
   j += ",\"binFull\":" + String(binIsFull() ? "true" : "false");
+  j += ",\"test\":" + testJson();
   j += ",\"code\":\"" MACHINE_CODE "\"";
   j += ",\"mac\":\"" + macTail(c.mac) + "\"";
   j += ",\"machine\":\"" + String(mine ? "mine" : drop.active ? "busy" : "free") + "\"";
@@ -160,6 +161,14 @@ static void apiDropEnd() {
   sendOk(s);
 }
 
+static void apiTestDrop() {
+  int s = reqSlot();
+  if (s < 0) return sendErr(503, "Reconnect to BottleKonek WiFi");
+  if (!cfg.testMode) return sendErr(400, "Test mode is off");
+  if (!testStart(s)) return sendErr(409, "Machine is busy. Wait a moment.");
+  sendOk(s);
+}
+
 static void apiHistory() {
   int s = reqSlot();
   if (s < 0) return sendErr(503, "Reconnect to BottleKonek WiFi");
@@ -205,7 +214,9 @@ static void apiAdminStats() {
              ",\"accounts\":" + String(countUsers()) + ",\"sta\":" + (WiFi.status() == WL_CONNECTED ? "true" : "false") +
              ",\"ip\":\"" + WiFi.localIP().toString() + "\",\"up\":" + String(millis() / 1000) +
              ",\"cfg\":{\"mpb\":" + String(cfg.minPerBottle) + ",\"grace\":" + String(cfg.guestGraceS) +
-             ",\"bincap\":" + String(cfg.binCapacity) + "},\"phones\":" + phones + "}";
+             ",\"bincap\":" + String(cfg.binCapacity) +
+             ",\"test\":" + String(cfg.testMode ? "true" : "false") + ",\"gopen\":" + String(cfg.gateOpenMs) +
+             ",\"gclose\":" + String(cfg.gateCloseMs) + ",\"gspd\":" + String(cfg.gateSpeed) + ",\"gdir\":" + String(cfg.gateDir) + "},\"phones\":" + phones + "}";
   sendJson(200, j);
 }
 
@@ -214,6 +225,12 @@ static void apiAdminSettings() {
   cfg.minPerBottle = constrain(server.arg("mpb").toInt(), 1, 120);
   cfg.guestGraceS  = constrain(server.arg("grace").toInt(), 0, 3600);
   cfg.binCapacity  = constrain(server.arg("bincap").toInt(), 5, 1000);
+  if (server.hasArg("gopen")) {
+    cfg.gateOpenMs  = constrain(server.arg("gopen").toInt(), 50, 3000);
+    cfg.gateCloseMs = constrain(server.arg("gclose").toInt(), 50, 3000);
+    cfg.gateSpeed   = constrain(server.arg("gspd").toInt(), 50, 500);
+    cfg.gateDir     = server.arg("gdir").toInt() < 0 ? -1 : 1;
+  }
   saveSettings();
   sendJson(200, "{\"ok\":1}");
 }
@@ -223,6 +240,20 @@ static void apiAdminBinEmptied() {
   stats.binCount = 0;
   saveStats();
   Serial.println("Bin emptied (count reset to 0)");
+  sendJson(200, "{\"ok\":1}");
+}
+
+static void apiAdminTestMode() {
+  if (!isAdmin()) return sendErr(401, "Please log in");
+  cfg.testMode = server.arg("on") == "1";
+  saveSettings();
+  Serial.printf("Test mode %s\n", cfg.testMode ? "ON" : "OFF");
+  sendJson(200, "{\"ok\":1}");
+}
+
+static void apiAdminGate() {
+  if (!isAdmin()) return sendErr(401, "Please log in");
+  if (!adminGate(server.arg("a"))) return sendErr(409, "Machine is busy, try again in a moment");
   sendJson(200, "{\"ok\":1}");
 }
 
@@ -281,12 +312,15 @@ void webBegin() {
   server.on("/api/drop/start", HTTP_POST, apiDropStart);
   server.on("/api/drop/end", HTTP_POST, apiDropEnd);
   server.on("/api/history", HTTP_GET, apiHistory);
+  server.on("/api/test/drop", HTTP_POST, apiTestDrop);
 
   server.on("/api/admin/login", HTTP_POST, apiAdminLogin);
   server.on("/api/admin/stats", HTTP_GET, apiAdminStats);
   server.on("/api/admin/settings", HTTP_POST, apiAdminSettings);
   server.on("/api/admin/users", HTTP_GET, apiAdminUsers);
   server.on("/api/admin/bin-emptied", HTTP_POST, apiAdminBinEmptied);
+  server.on("/api/admin/testmode", HTTP_POST, apiAdminTestMode);
+  server.on("/api/admin/gate", HTTP_POST, apiAdminGate);
   server.on("/api/admin/user", HTTP_POST, apiAdminUser);
 
   server.onNotFound(redirectToPortal);     // generate_204, hotspot-detect.html, etc.

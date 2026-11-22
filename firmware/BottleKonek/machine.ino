@@ -17,7 +17,8 @@
 
 static LiquidCrystal_I2C *lcd = nullptr;   // created in machineBegin() once the address is known
 
-enum MState { M_IDLE, M_CHECK, M_WAIT_DROP, M_CLOSING, M_WAIT_REMOVE };
+enum MState { M_IDLE, M_CHECK, M_WAIT_DROP, M_CLOSING, M_WAIT_REMOVE,
+              M_TEST_COUNT, M_TEST_CHECK, M_TEST_DROP, M_GATE_TEST };   // test-mode states
 static MState   mstate = M_IDLE;
 static uint32_t mT = 0;              // time the current state started
 static uint32_t irSince = 0;         // IR has seen a bottle since
@@ -26,6 +27,8 @@ static bool     armed = true;        // the gate area must be clear before the n
 static bool     metalSeen = false, plasticSeen = false;
 static float    baselineCm = 0;      // empty distance across the drop path (measured at start-up)
 static uint32_t lastUs = 0;
+static String   testResult = "";   // last test-drop result shown on the website
+static uint32_t testSeq = 0;
 
 bool binIsFull() { return stats.binCount >= (uint32_t)cfg.binCapacity; }
 
@@ -43,20 +46,20 @@ static uint32_t gateStopAt = 0;       // 360 servo: when to stop spinning
 
 // 360-degree servo: spin one way for `ms`, then stop (no signal = no movement).
 static void gateSpin(int dir, uint32_t ms) {
-  servoPulse(PIN_SERVO_GATE, 1500 + dir * GATE_SPEED_US);
+  servoPulse(PIN_SERVO_GATE, 1500 + dir * cfg.gateSpeed);
   gateStopAt = millis() + ms;
   if (gateStopAt == 0) gateStopAt = 1;
 }
 static void gateOpen() {
   if (gateIsOpen) return;               // never spin further than open
   gateIsOpen = true;
-  if (SERVO_360) gateSpin(GATE_OPEN_DIR, GATE_OPEN_MS);
+  if (SERVO_360) gateSpin(cfg.gateDir, cfg.gateOpenMs);
   else servoWrite(PIN_SERVO_GATE, GATE_OPEN_DEG);
 }
 static void gateClose() {
   if (!gateIsOpen) return;              // already closed: do not move
   gateIsOpen = false;
-  if (SERVO_360) gateSpin(-GATE_OPEN_DIR, GATE_CLOSE_MS);
+  if (SERVO_360) gateSpin(-cfg.gateDir, cfg.gateCloseMs);
   else servoWrite(PIN_SERVO_GATE, GATE_CLOSED_DEG);
 }
 static void gateLoop() {
@@ -93,6 +96,7 @@ static void lcdStatusScreen() {
   if (millis() - lastDraw < 250) return;   // redraw at most 4 times a second
   lastDraw = millis();
   if (millis() < lcdTempUntil) return;
+  if (mstate == M_TEST_COUNT) return;     // countdown draws itself
   if (mstate == M_WAIT_REMOVE) { lcdShow("Rejected!", "Take item out"); return; }
   if (binIsFull()) { lcdShow("BIN FULL", "Please call admin"); return; }
   if (drop.active) {
@@ -103,6 +107,7 @@ static void lcdStatusScreen() {
     return;
   }
   // idle: alternate two screens every 3 s
+  if (cfg.testMode && (millis() / 3000) % 3 == 2) { lcdShow("TEST MODE ON", "Tap Test drop"); return; }
   if ((millis() / 3000) % 2) lcdShow("Join WiFi:", PORTAL_WIFI_NAME);
   else lcdShow("BottleKonek " MACHINE_CODE, "1 bottle=" + String(cfg.minPerBottle) + " min");
 }
@@ -251,6 +256,43 @@ static void rejectItem(const char *phoneText, const char *lcd1, const char *lcd2
 }
 
 // ---------------------------------------------------------------------------
+//  Test mode (admin switch) and gate test (admin panel)
+// ---------------------------------------------------------------------------
+bool testStart(int slot) {
+  if (!cfg.testMode || mstate != M_IDLE) return false;
+  if (drop.active && drop.slot != slot) return false;
+  mstate = M_TEST_COUNT; mT = millis();
+  armed = false;                           // the test bottle must be removed before a real drop counts
+  testResult = "Get ready: hold the bottle at the gate...";
+  testSeq++;
+  beep(1);
+  Serial.println("TEST drop started (3 s countdown)");
+  return true;
+}
+
+static void testFinish(const String &result) { testResult = result; testSeq++; Serial.println("TEST: " + result); }
+
+String testJson() {
+  const char *phase = mstate == M_TEST_COUNT ? "count" : mstate == M_TEST_CHECK ? "check" :
+                      mstate == M_TEST_DROP ? "drop" : "idle";
+  String r = testResult; r.replace("\"", "'");
+  return "{\"on\":" + String(cfg.testMode ? "true" : "false") + ",\"busy\":" + String(mstate != M_IDLE ? "true" : "false") +
+         ",\"phase\":\"" + phase + "\",\"left\":" + String(mstate == M_TEST_COUNT ? max(0, 3 - (int)((millis() - mT) / 1000)) : 0) +
+         ",\"result\":\"" + r + "\",\"seq\":" + String(testSeq) + "}";
+}
+
+// Admin buttons: "open", "close", "cycle" (open 3 s, then close)
+bool adminGate(const String &action) {
+  if (mstate != M_IDLE) return false;
+  if (action == "open") gateOpen();
+  else if (action == "close") gateClose();
+  else if (action == "cycle") { gateOpen(); mstate = M_GATE_TEST; mT = millis(); }
+  else return false;
+  Serial.println("Admin gate: " + action);
+  return true;
+}
+
+// ---------------------------------------------------------------------------
 void machineBegin() {
   pinMode(PIN_LED_RED, OUTPUT);
   pinMode(PIN_LED_YELLOW, OUTPUT);
@@ -348,6 +390,59 @@ void machineLoop() {
 
     case M_CLOSING:
       if (now - mT >= GATE_CLOSE_DELAY) { gateClose(); mstate = M_IDLE; }
+      break;
+
+    case M_TEST_COUNT: {                           // test: 3 s countdown
+      int left = 3 - (int)((now - mT) / 1000);
+      lcdShow("TEST MODE", "Drop in " + String(max(left, 0)) + "...");
+      if (now - mT >= 3000) {
+        metalSeen = false;
+        lcdTemp("TEST: checking", "metal sensor...", 1200);
+        mstate = M_TEST_CHECK; mT = now;
+      }
+      break;
+    }
+
+    case M_TEST_CHECK:                             // test: watch the metal sensor
+      metalSeen |= metalNow();
+      if (now - mT >= CHECK_TIME_MS) {
+        if (metalSeen) {
+          lcdTemp("TEST: METAL!", "Gate stays shut", 3500);
+          redUntil = now + 2000;
+          beep(2);
+          testFinish("Metal detected: gate stayed closed");
+          mstate = M_IDLE;
+        } else {
+          gateOpen();
+          lcdTemp("TEST: No metal", "Gate open", 2500);
+          beep(1);
+          testResult = "No metal: gate opened, watching for the drop...";
+          testSeq++;
+          mstate = M_TEST_DROP; mT = now; lastUs = 0;
+        }
+      }
+      break;
+
+    case M_TEST_DROP:                              // test: ultrasonic should see the fall
+      if (now - mT >= 40 && now - lastUs >= 40) {
+        lastUs = now;
+        if (bottlePassing()) {
+          lcdTemp("TEST: Dropped!", "Sensor OK", 3000);
+          testFinish("No metal, gate opened, drop detected. Everything works!");
+          mstate = M_CLOSING; mT = now;
+          break;
+        }
+      }
+      if (now - mT > DROP_WAIT_MS) {
+        lcdTemp("TEST: no drop", "seen by sensor", 3000);
+        testFinish("No metal, gate opened, but the ultrasonic did not see a drop");
+        gateClose();
+        mstate = M_IDLE;
+      }
+      break;
+
+    case M_GATE_TEST:                              // admin "Test cycle": open 3 s then close
+      if (now - mT >= 3000) { gateClose(); mstate = M_IDLE; }
       break;
 
     case M_WAIT_REMOVE:                            // rejected item still at the gate

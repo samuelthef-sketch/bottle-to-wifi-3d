@@ -48,6 +48,11 @@ struct Settings {
   int minPerBottle;
   int guestGraceS;
   int binCapacity;      // bottles until the bin counts as full
+  bool testMode;        // admin switch: shows the Test drop button on the website
+  int gateOpenMs;       // 360 servo: spin time to open
+  int gateCloseMs;      // 360 servo: spin time to close
+  int gateSpeed;        // 360 servo: spin speed (us away from 1500)
+  int gateDir;          // 1 or -1
 };
 
 struct Stats {
@@ -118,6 +123,9 @@ bool dropStart(int slot);
 void dropEnd(const char *why, int useNow);   // useNow: 1 = start internet, 0 = save, -1 = automatic
 bool machineBusy();
 bool binIsFull();
+bool testStart(int slot);
+String testJson();
+bool adminGate(const String &action);
 
 // ---- web.ino ----
 void webBegin();

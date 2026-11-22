@@ -265,6 +265,11 @@ void loadSettings() {
   cfg.minPerBottle = prefs.getInt("mpb", DEFAULT_MIN_PER_BOTTLE);
   cfg.guestGraceS  = prefs.getInt("grace", DEFAULT_GUEST_GRACE_S);
   cfg.binCapacity  = prefs.getInt("bincap", DEFAULT_BIN_CAPACITY);
+  cfg.testMode     = prefs.getBool("test", false);
+  cfg.gateOpenMs   = prefs.getInt("gopen", GATE_OPEN_MS);
+  cfg.gateCloseMs  = prefs.getInt("gclose", GATE_CLOSE_MS);
+  cfg.gateSpeed    = prefs.getInt("gspd", GATE_SPEED_US);
+  cfg.gateDir      = prefs.getInt("gdir", GATE_OPEN_DIR);
   prefs.end();
 }
 
@@ -273,6 +278,11 @@ void saveSettings() {
   prefs.putInt("mpb", cfg.minPerBottle);
   prefs.putInt("grace", cfg.guestGraceS);
   prefs.putInt("bincap", cfg.binCapacity);
+  prefs.putBool("test", cfg.testMode);
+  prefs.putInt("gopen", cfg.gateOpenMs);
+  prefs.putInt("gclose", cfg.gateCloseMs);
+  prefs.putInt("gspd", cfg.gateSpeed);
+  prefs.putInt("gdir", cfg.gateDir);
   prefs.end();
 }
 

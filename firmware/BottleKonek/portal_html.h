@@ -67,7 +67,7 @@ function api(path,data){
   return fetch(path,o).then(function(r){return r.json().then(function(j){if(!r.ok)throw new Error(j.error||'Something went wrong');return j})})
 }
 function refresh(){api('/api/state').then(function(j){S=j;shownSecs=j.secs;render()}).catch(function(){}).then(schedule)}
-function schedule(){clearTimeout(T);T=setTimeout(refresh,S&&S.machine==='mine'?1000:4000)}
+function schedule(){clearTimeout(T);T=setTimeout(refresh,S&&(S.machine==='mine'||(S.test&&S.test.busy))?1000:4000)}
 function act(path,data,okMsg){return api(path,data||{}).then(function(j){if(okMsg)toast(okMsg);S=j.state||S;if(j.state)shownSecs=j.state.secs;render();refresh();return j}).catch(function(e){toast(e.message)})}
 function mmss(s){s=Math.max(0,s|0);var h=Math.floor(s/3600),m=Math.floor(s%3600/60),x=s%60;return(h?h+':'+(m<10?'0':''):'')+m+':'+(x<10?'0':'')+x}
 function bottle(secs){var pct=Math.min(1,secs/3600),h=Math.round(6+pct*104);return '<svg class="bottle" viewBox="0 0 64 120" aria-hidden="true"><g clip-path="url(#bc)"><rect width="64" height="120" fill="rgba(255,255,255,.12)"/><rect class="water" x="0" y="'+(120-h)+'" width="64" height="'+h+'" fill="var(--water)"/></g><path d="M24 4h16v12c0 4 10 8 12 18v76c0 6-4 9-10 9H22c-6 0-10-3-10-9V34c2-10 12-14 12-18z" fill="none" stroke="#fff" stroke-width="2.5"/><rect x="22" y="1" width="20" height="7" rx="2" fill="var(--sun)"/></svg>'}
@@ -87,10 +87,15 @@ function render(){
   else if(S.user)h=vAccount();
   else if(S.secs>0)h=vGuestOnline();
   else h=vWelcome();
+  if(S.test&&S.test.on&&S.machine!=='mine'&&view!=='auth'&&view!=='history')h=testCard()+h;
   a.innerHTML=h;
   clearInterval(tick);
   if(S.online){tick=setInterval(function(){shownSecs--;var el=$('cd');if(el)el.textContent=mmss(shownSecs);if(shownSecs<=0)refresh()},1000)}
 }
+function testCard(){var t=S.test,ph=t.phase,label=ph==='count'?'Hold the bottle at the gate... '+t.left:ph==='check'?'Checking for metal...':ph==='drop'?'Gate open, drop the bottle':'Test drop (3 s)';
+ return '<div class="card" style="background:#fff6df;box-shadow:inset 0 0 0 1px #f3dfa8;display:grid;gap:10px;margin-bottom:12px"><div style="display:flex;justify-content:space-between;align-items:center"><span class="lbl" style="color:#8a5a00">Test mode</span><span class="pill warn"><span class="dot"></span>No minutes given</span></div>'+
+ '<button class="btn p" onclick="act(\'/api/test/drop\',{},\'Test started: get the bottle ready\')"'+(t.busy?' disabled':'')+'>'+esc(label)+'</button>'+
+ (t.result?'<div style="font-size:13.5px;color:#6b4a00">'+esc(t.result)+'</div>':'')+'</div>'}
 function vWelcome(){return brand('Bongabon Senior High School')+'<div class="stack">'+
  '<div class="hero"><div><div class="k">Your internet time</div><div class="v">0<small> min</small></div><div class="hs">1 empty bottle = '+S.mpb+' minutes</div></div>'+bottle(0)+'</div>'+
  dropBtn('p','Drop bottles')+
