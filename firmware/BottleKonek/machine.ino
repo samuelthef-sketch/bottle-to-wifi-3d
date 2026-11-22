@@ -281,6 +281,19 @@ String testJson() {
          ",\"result\":\"" + r + "\",\"seq\":" + String(testSeq) + "}";
 }
 
+// Live readings for the admin "Sensor check" card
+String sensorsJson() {
+  static float lastCm = 0;
+  if (mstate == M_IDLE) lastCm = readCm();          // don't disturb a running drop check
+  char b[200];
+  snprintf(b, sizeof(b), "{\"ir\":%s,\"metal\":%s,\"cm\":%.1f,\"base\":%.1f,\"passing\":%s}",
+           irItem() ? "true" : "false", metalNow() ? "true" : "false", lastCm, baselineCm,
+           (lastCm > 0 && baselineCm > 0 && lastCm < baselineCm - DROP_DELTA_CM) ? "true" : "false");
+  return String(b);
+}
+
+void recalibrateDrop() { calibrateDrop(); }
+
 // Admin buttons: "open", "close", "cycle" (open 3 s, then close)
 bool adminGate(const String &action) {
   if (mstate != M_IDLE) return false;
@@ -449,6 +462,10 @@ void machineLoop() {
       if (irClearSince && now - irClearSince > 500) { mstate = M_IDLE; armed = true; }
       break;
   }
+
+  // no ultrasonic baseline yet (e.g. 12 V was off at start-up): retry every 10 s
+  static uint32_t lastCal = 0;
+  if (baselineCm <= 0 && mstate == M_IDLE && now - lastCal > 10000) { lastCal = now; calibrateDrop(); }
 
   // drop session timeout
   if (drop.active && mstate == M_IDLE && now - drop.lastActivityMs > DROP_IDLE_TIMEOUT_S * 1000UL)

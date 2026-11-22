@@ -257,6 +257,17 @@ static void apiAdminGate() {
   sendJson(200, "{\"ok\":1}");
 }
 
+static void apiAdminSensors() {
+  if (!isAdmin()) return sendErr(401, "Please log in");
+  sendJson(200, sensorsJson());
+}
+
+static void apiAdminRecal() {
+  if (!isAdmin()) return sendErr(401, "Please log in");
+  recalibrateDrop();
+  sendJson(200, sensorsJson());
+}
+
 static void apiAdminUsers() {
   if (!isAdmin()) return sendErr(401, "Please log in");
   sendJson(200, usersJson());
@@ -321,6 +332,8 @@ void webBegin() {
   server.on("/api/admin/bin-emptied", HTTP_POST, apiAdminBinEmptied);
   server.on("/api/admin/testmode", HTTP_POST, apiAdminTestMode);
   server.on("/api/admin/gate", HTTP_POST, apiAdminGate);
+  server.on("/api/admin/sensors", HTTP_GET, apiAdminSensors);
+  server.on("/api/admin/recal", HTTP_POST, apiAdminRecal);
   server.on("/api/admin/user", HTTP_POST, apiAdminUser);
 
   server.onNotFound(redirectToPortal);     // generate_204, hotspot-detect.html, etc.

@@ -126,6 +126,8 @@ bool binIsFull();
 bool testStart(int slot);
 String testJson();
 bool adminGate(const String &action);
+String sensorsJson();
+void recalibrateDrop();
 
 // ---- web.ino ----
 void webBegin();
