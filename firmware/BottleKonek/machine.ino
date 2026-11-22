@@ -144,7 +144,7 @@ static void outputsLoop() {
 //  Sensors
 // ---------------------------------------------------------------------------
 static bool irItem()     { return digitalRead(PIN_IR) == LOW; }
-static bool metalNow()   { return digitalRead(PIN_METAL) == (METAL_ACTIVE_HIGH ? HIGH : LOW); }
+static bool metalNow()   { return USE_METAL_SENSOR && digitalRead(PIN_METAL) == (METAL_ACTIVE_HIGH ? HIGH : LOW); }
 static bool plasticNow() { return PIN_PLASTIC >= 0 && digitalRead(PIN_PLASTIC) == HIGH; }
 
 // Distance in cm from the ultrasonic sensor, 0 if no echo.
