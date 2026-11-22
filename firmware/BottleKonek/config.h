@@ -33,7 +33,7 @@
 
 #define PIN_IR          27    // IR obstacle module OUT at the gate. LOW = bottle waiting
 #define PIN_METAL       35    // ONE metal sensor (LJ18A3-8-Z/BY, PNP) through 10k/3.3k divider
-#define USE_METAL_SENSOR  1   // 0 = ignore the metal sensor (machine accepts any item the IR sees)
+#define USE_METAL_SENSOR  0   // 0 now (no MT3608 yet). When the MT3608 is installed: change to 1 and upload
 #define METAL_ACTIVE_HIGH 1   // BY (PNP) = 1.  If you use the BX (NPN) sensor instead, set 0
 #define PIN_US_TRIG     33    // HC-SR04 below the gate: sees the bottle fall through
 #define PIN_US_ECHO     32    // HC-SR04 ECHO through 1k/2.2k divider
