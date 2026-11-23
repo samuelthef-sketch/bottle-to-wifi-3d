@@ -4,6 +4,7 @@
 #include <WebServer.h>
 #include "portal_html.h"
 #include "admin_html.h"
+#include "demo_html.h"
 #include "logo_jpg.h"
 
 static WebServer server(80);
@@ -268,6 +269,26 @@ static void apiAdminRecal() {
   sendJson(200, sensorsJson());
 }
 
+static void apiDemoState() {
+  if (!isAdmin()) return sendErr(401, "Please log in");
+  sendJson(200, demoJson());
+}
+static void apiDemoMode() {
+  if (!isAdmin()) return sendErr(401, "Please log in");
+  demoSet(server.arg("on") == "1");
+  sendJson(200, demoJson());
+}
+static void apiDemoAccept() {
+  if (!isAdmin()) return sendErr(401, "Please log in");
+  if (!demoAccept()) return sendErr(409, "No student is dropping right now (or the gate is moving)");
+  sendJson(200, demoJson());
+}
+static void apiDemoReject() {
+  if (!isAdmin()) return sendErr(401, "Please log in");
+  if (!demoReject()) return sendErr(409, "No student is dropping right now (or the gate is moving)");
+  sendJson(200, demoJson());
+}
+
 static void apiAdminUsers() {
   if (!isAdmin()) return sendErr(401, "Please log in");
   sendJson(200, usersJson());
@@ -312,6 +333,13 @@ void webBegin() {
   server.on("/admin", HTTP_GET, []() {
     sendStatic("text/html; charset=utf-8", (const uint8_t *)ADMIN_HTML, strlen(ADMIN_HTML), false);
   });
+  server.on("/paneldemo", HTTP_GET, []() {
+    sendStatic("text/html; charset=utf-8", (const uint8_t *)DEMO_HTML, strlen(DEMO_HTML), false);
+  });
+  server.on("/api/admin/demo", HTTP_GET, apiDemoState);
+  server.on("/api/admin/demo/mode", HTTP_POST, apiDemoMode);
+  server.on("/api/admin/demo/accept", HTTP_POST, apiDemoAccept);
+  server.on("/api/admin/demo/reject", HTTP_POST, apiDemoReject);
   server.on("/logo.jpg", HTTP_GET, []() { sendStatic("image/jpeg", LOGO_JPG, LOGO_JPG_LEN, true); });
 
   server.on("/api/state", HTTP_GET, apiState);

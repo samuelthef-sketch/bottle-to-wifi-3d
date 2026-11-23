@@ -127,6 +127,10 @@ bool testStart(int slot);
 String testJson();
 bool adminGate(const String &action);
 String sensorsJson();
+String demoJson();
+void demoSet(bool on);
+bool demoAccept();
+bool demoReject();
 void recalibrateDrop();
 
 // ---- web.ino ----

@@ -16,7 +16,7 @@
 #define ADMIN_PASSWORD      "bshs-admin-2026"    // change this!
 
 // ---------- 4. RULES (admin page can change minutes and grace later) -------
-#define DEFAULT_MIN_PER_BOTTLE  5     // minutes added per accepted bottle
+#define DEFAULT_MIN_PER_BOTTLE  4     // minutes added per accepted bottle
 #define DEFAULT_GUEST_GRACE_S   60    // guest time resets after this many seconds away
 #define DEFAULT_BIN_CAPACITY    70    // bin counts as FULL after this many bottles (admin can change)
 #define DROP_IDLE_TIMEOUT_S     30    // drop session ends after this long with no bottle
@@ -31,6 +31,10 @@
 
 #define PIN_SERVO_GATE  25    // MG90S: swinging gate at the end of the PVC chute
 
+// Which sensor sees the bottle at the gate: 1 = ultrasonic (checks every 0.8 s), 0 = IR sensor
+#define ITEM_SENSOR_ULTRASONIC 1
+#define US_POLL_MS        800   // ultrasonic check interval during a drop session
+#define DEMO_GATE_OPEN_MS 2500  // demo panel: how long the gate stays open after Accept
 #define PIN_IR          27    // IR obstacle module OUT at the gate. LOW = bottle waiting
 #define PIN_METAL       35    // ONE metal sensor (LJ18A3-8-Z/BY, PNP) through 10k/3.3k divider
 #define USE_METAL_SENSOR  0   // 0 now (no MT3608 yet). When the MT3608 is installed: change to 1 and upload

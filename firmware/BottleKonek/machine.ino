@@ -18,7 +18,8 @@
 static LiquidCrystal_I2C *lcd = nullptr;   // created in machineBegin() once the address is known
 
 enum MState { M_IDLE, M_CHECK, M_WAIT_DROP, M_CLOSING, M_WAIT_REMOVE,
-              M_TEST_COUNT, M_TEST_CHECK, M_TEST_DROP, M_GATE_TEST };   // test-mode states
+              M_TEST_COUNT, M_TEST_CHECK, M_TEST_DROP, M_GATE_TEST,     // test-mode states
+              M_DEMO_CLOSE };                                           // demo panel: gate open after Accept
 static MState   mstate = M_IDLE;
 static uint32_t mT = 0;              // time the current state started
 static uint32_t irSince = 0;         // IR has seen a bottle since
@@ -27,6 +28,11 @@ static bool     armed = true;        // the gate area must be clear before the n
 static bool     metalSeen = false, plasticSeen = false;
 static float    baselineCm = 0;      // empty distance across the drop path (measured at start-up)
 static uint32_t lastUs = 0;
+static bool     demoMode = false;  // /paneldemo: admin decides accept / metal
+static String   demoLast = "";
+static int      irIdle = HIGH;     // IR level with nothing in front (learned at start-up)
+static bool     usItem = false;    // ultrasonic sees an object (cached)
+static uint32_t usPollAt = 0;
 static String   testResult = "";   // last test-drop result shown on the website
 static uint32_t testSeq = 0;
 
@@ -143,7 +149,7 @@ static void outputsLoop() {
 // ---------------------------------------------------------------------------
 //  Sensors
 // ---------------------------------------------------------------------------
-static bool irItem()     { return digitalRead(PIN_IR) == LOW; }
+static bool irItem()     { return digitalRead(PIN_IR) != irIdle; }   // different from the empty level = something there
 static bool metalNow()   { return USE_METAL_SENSOR && digitalRead(PIN_METAL) == (METAL_ACTIVE_HIGH ? HIGH : LOW); }
 static bool plasticNow() { return PIN_PLASTIC >= 0 && digitalRead(PIN_PLASTIC) == HIGH; }
 
@@ -152,20 +158,28 @@ static float readCm() {
   digitalWrite(PIN_US_TRIG, LOW);  delayMicroseconds(3);
   digitalWrite(PIN_US_TRIG, HIGH); delayMicroseconds(10);
   digitalWrite(PIN_US_TRIG, LOW);
-  unsigned long us = pulseIn(PIN_US_ECHO, HIGH, 12000UL);   // up to ~2 m
-  return us ? us / 58.0f : 0;
+  unsigned long us = pulseIn(PIN_US_ECHO, HIGH, 25000UL);   // up to ~4 m
+  float cm = us / 58.0f;
+  return (cm >= 2.0f && cm <= 400.0f) ? cm : 0;            // 0 = no valid echo (ignores 0.0 / 0.1 cm glitches)
 }
 
 static void calibrateDrop() {
-  float v[5]; int n = 0;
-  for (int i = 0; i < 7 && n < 5; i++) { float d = readCm(); if (d > 0) v[n++] = d; delay(40); }
-  if (n == 0) { baselineCm = 0; Serial.println("Ultrasonic: no echo! Check TRIG->D33, ECHO->D32 (divider), VCC 5V, GND"); return; }
+  float v[9]; int n = 0;
+  for (int i = 0; i < 15 && n < 9; i++) { float d = readCm(); if (d > 0) v[n++] = d; delay(50); }
+  if (n < 3) { baselineCm = 0; Serial.println("Ultrasonic: no steady echo. Check TRIG->D33, ECHO->D32, VCC 3V3, GND"); return; }
   for (int i = 0; i < n; i++) for (int j = i + 1; j < n; j++) if (v[j] < v[i]) { float t = v[i]; v[i] = v[j]; v[j] = t; }
   baselineCm = v[n / 2];
   Serial.printf("Ultrasonic: empty drop path = %.1f cm (a bottle must make it < %.1f cm)\n", baselineCm, baselineCm - DROP_DELTA_CM);
 }
 
 // True when something is passing in front of the ultrasonic sensor.
+static void learnIrIdle() {
+  int highs = 0;
+  for (int i = 0; i < 20; i++) { highs += digitalRead(PIN_IR); delay(5); }
+  irIdle = highs >= 10 ? HIGH : LOW;
+  Serial.printf("IR: empty level = %s (keep the gate area empty at start-up)\n", irIdle ? "HIGH" : "LOW");
+}
+
 static bool bottlePassing() {
   float d = readCm();
   if (baselineCm <= 0) return d > 0 && d < 30;                 // no baseline: anything closer than 30 cm
@@ -292,7 +306,56 @@ String sensorsJson() {
   return String(b);
 }
 
-void recalibrateDrop() { calibrateDrop(); }
+void recalibrateDrop() { calibrateDrop(); learnIrIdle(); }
+
+// ---------------------------------------------------------------------------
+//  Demo panel (/paneldemo): the admin decides for each bottle
+// ---------------------------------------------------------------------------
+void demoSet(bool on) {
+  demoMode = on;
+  demoLast = on ? "Demo ON: waiting for a student to tap Drop bottles" : "";
+  Serial.printf("Demo mode %s\n", on ? "ON" : "OFF");
+}
+
+bool demoAccept() {
+  if (!demoMode || !drop.active) return false;
+  if (mstate == M_WAIT_REMOVE) mstate = M_IDLE;
+  if (mstate != M_IDLE) return false;
+  creditBottle();                                  // +minutes, bin count, beep
+  gateOpen();
+  lcdTemp("No metal detect.", "Accepted +" + String(cfg.minPerBottle) + " min", 3000);
+  demoLast = "Accepted: +" + String(cfg.minPerBottle) + " min added";
+  mstate = M_DEMO_CLOSE; mT = millis();
+  return true;
+}
+
+bool demoReject() {
+  if (!demoMode || !drop.active) return false;
+  if (mstate == M_WAIT_REMOVE) mstate = M_IDLE;
+  if (mstate != M_IDLE) return false;
+  stats.todayRejects++;
+  drop.rejected++;
+  drop.lastActivityMs = millis();
+  addEvent(false, "Rejected: metal detected");
+  gateClose();
+  lcdTemp("Metal detected!", "Rejected", 3000);
+  redUntil = millis() + 2500;
+  beep(2);
+  demoLast = "Metal: gate stayed closed, no minutes";
+  return true;
+}
+
+String demoJson() {
+  String who = "";
+  bool active = drop.active && drop.slot >= 0 && clients[drop.slot].used;
+  if (active) who = clients[drop.slot].user[0] ? String(clients[drop.slot].user) : String("Guest");
+  String last = demoLast; last.replace("\"", "'");
+  return "{\"on\":" + String(demoMode ? "true" : "false") + ",\"active\":" + String(active ? "true" : "false") +
+         ",\"who\":\"" + who + "\",\"acc\":" + String(drop.accepted) + ",\"rej\":" + String(drop.rejected) +
+         ",\"min\":" + String(drop.accepted * cfg.minPerBottle) + ",\"mpb\":" + String(cfg.minPerBottle) +
+         ",\"busy\":" + String(mstate != M_IDLE && mstate != M_WAIT_REMOVE ? "true" : "false") +
+         ",\"last\":\"" + last + "\"}";
+}
 
 // Admin buttons: "open", "close", "cycle" (open 3 s, then close)
 bool adminGate(const String &action) {
@@ -349,19 +412,29 @@ void machineBegin() {
   else servoWrite(PIN_SERVO_GATE, GATE_CLOSED_DEG);
   gateIsOpen = false;
   calibrateDrop();                           // keep the drop path empty while starting up
+  learnIrIdle();
 }
 
 void machineLoop() {
   uint32_t now = millis();
 
-  // IR debounce
-  if (irItem()) { irClearSince = 0; if (!irSince) irSince = now; }
+  // ultrasonic polling: every US_POLL_MS during a drop session, fast while waiting for the drop
+  if (ITEM_SENSOR_ULTRASONIC) {
+    bool want = drop.active || mstate == M_WAIT_DROP;
+    uint32_t every = mstate == M_WAIT_DROP ? 100 : US_POLL_MS;
+    if (want && now >= usPollAt) { usPollAt = now + every; usItem = bottlePassing(); }
+    if (!want) usItem = false;
+  }
+  bool item = ITEM_SENSOR_ULTRASONIC ? usItem : irItem();
+
+  // item debounce (irSince / irClearSince now mean "item seen / item gone")
+  if (item) { irClearSince = 0; if (!irSince) irSince = now; }
   else          { irSince = 0; if (!irClearSince) irClearSince = now; }
   if (!armed && irClearSince && now - irClearSince > 400) armed = true;
 
   switch (mstate) {
     case M_IDLE:
-      if (drop.active && armed && irSince && now - irSince >= ITEM_DEBOUNCE_MS) {   // ignore the IR when nobody is dropping
+      if (!demoMode && drop.active && armed && irSince && now - irSince >= ITEM_DEBOUNCE_MS) {   // automatic check (off in demo mode)
         armed = false;
         metalSeen = plasticSeen = false;
         if (drop.active) drop.lastActivityMs = now;
@@ -382,8 +455,10 @@ void machineLoop() {
       }
       break;
 
-    case M_WAIT_DROP:                              // ultrasonic must see the bottle fall
-      if (now - lastUs >= 40) {
+    case M_WAIT_DROP:                              // confirm the bottle really fell
+      if (ITEM_SENSOR_ULTRASONIC) {                // ultrasonic at the gate: the bottle must leave
+        if (irClearSince && now - irClearSince > 200) { creditBottle(); mstate = M_CLOSING; mT = now; break; }
+      } else if (now - lastUs >= 40) {             // IR at the gate: ultrasonic below must see it pass
         lastUs = now;
         if (bottlePassing()) {
           creditBottle();
@@ -397,7 +472,7 @@ void machineLoop() {
         redUntil = now + 1500;
         beep(3);
         gateClose();
-        mstate = irItem() ? M_WAIT_REMOVE : M_IDLE;
+        mstate = item ? M_WAIT_REMOVE : M_IDLE;
         mT = now;
       }
       break;
@@ -455,6 +530,10 @@ void machineLoop() {
       }
       break;
 
+    case M_DEMO_CLOSE:                             // demo: gate open for a moment after Accept
+      if (now - mT >= DEMO_GATE_OPEN_MS) { gateClose(); mstate = M_IDLE; }
+      break;
+
     case M_GATE_TEST:                              // admin "Test cycle": open 3 s then close
       if (now - mT >= 3000) { gateClose(); mstate = M_IDLE; }
       break;
@@ -470,7 +549,7 @@ void machineLoop() {
   if (baselineCm <= 0 && mstate == M_IDLE && now - lastCal > 10000) { lastCal = now; calibrateDrop(); }
 
   // drop session timeout
-  if (drop.active && mstate == M_IDLE && now - drop.lastActivityMs > DROP_IDLE_TIMEOUT_S * 1000UL)
+  if (drop.active && mstate == M_IDLE && now - drop.lastActivityMs > (demoMode ? 120000UL : DROP_IDLE_TIMEOUT_S * 1000UL))
     dropEnd("no bottle for 30 s", -1);
 
   gateLoop();
