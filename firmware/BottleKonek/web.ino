@@ -217,7 +217,8 @@ static void apiAdminStats() {
              ",\"cfg\":{\"mpb\":" + String(cfg.minPerBottle) + ",\"grace\":" + String(cfg.guestGraceS) +
              ",\"bincap\":" + String(cfg.binCapacity) +
              ",\"test\":" + String(cfg.testMode ? "true" : "false") + ",\"gopen\":" + String(cfg.gateOpenMs) +
-             ",\"gclose\":" + String(cfg.gateCloseMs) + ",\"gspd\":" + String(cfg.gateSpeed) + ",\"gdir\":" + String(cfg.gateDir) + "},\"phones\":" + phones + "}";
+             ",\"gclose\":" + String(cfg.gateCloseMs) + ",\"gspd\":" + String(cfg.gateSpeed) + ",\"gdir\":" + String(cfg.gateDir) +
+             ",\"s360\":" + String(cfg.servo360 ? 1 : 0) + ",\"odeg\":" + String(cfg.openDeg) + ",\"cdeg\":" + String(cfg.closeDeg) + "},\"phones\":" + phones + "}";
   sendJson(200, j);
 }
 
@@ -231,6 +232,11 @@ static void apiAdminSettings() {
     cfg.gateCloseMs = constrain(server.arg("gclose").toInt(), 50, 3000);
     cfg.gateSpeed   = constrain(server.arg("gspd").toInt(), 50, 500);
     cfg.gateDir     = server.arg("gdir").toInt() < 0 ? -1 : 1;
+  }
+  if (server.hasArg("odeg")) {
+    cfg.servo360 = server.arg("s360") == "1";
+    cfg.openDeg  = constrain(server.arg("odeg").toInt(), 0, 180);
+    cfg.closeDeg = constrain(server.arg("cdeg").toInt(), 0, 180);
   }
   saveSettings();
   sendJson(200, "{\"ok\":1}");

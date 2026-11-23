@@ -32,10 +32,10 @@ void setup() {
   memset(clients, 0, sizeof(clients));
   memset(&drop, 0, sizeof(drop));
 
-  machineBegin();          // LCD + LEDs first so people see something
+  storageBegin();          // settings first: the gate servo needs them
+  machineBegin();          // LCD, LEDs, buzzer, servo, sensors
   lcdShow("BottleKonek", "Starting...");
-  Serial.println("[2/4] Storage...");
-  storageBegin();          // LittleFS + settings + stats
+  Serial.println("[2/4] Storage OK");
   Serial.println("[3/4] WiFi...");
   networkBegin();          // main WiFi + hotspot + internet sharing + DNS
   Serial.println("[4/4] Website...");

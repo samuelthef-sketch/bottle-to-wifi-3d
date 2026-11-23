@@ -60,14 +60,14 @@ static void gateSpin(int dir, uint32_t ms) {
 static void gateOpen() {
   if (gateIsOpen) return;               // never spin further than open
   gateIsOpen = true;
-  if (SERVO_360) gateSpin(cfg.gateDir, cfg.gateOpenMs);
-  else servoWrite(PIN_SERVO_GATE, GATE_OPEN_DEG);
+  if (cfg.servo360) gateSpin(cfg.gateDir, cfg.gateOpenMs);
+  else servoWrite(PIN_SERVO_GATE, cfg.openDeg);        // 180 servo: holds this angle
 }
 static void gateClose() {
   if (!gateIsOpen) return;              // already closed: do not move
   gateIsOpen = false;
-  if (SERVO_360) gateSpin(-cfg.gateDir, cfg.gateCloseMs);
-  else servoWrite(PIN_SERVO_GATE, GATE_CLOSED_DEG);
+  if (cfg.servo360) gateSpin(-cfg.gateDir, cfg.gateCloseMs);
+  else servoWrite(PIN_SERVO_GATE, cfg.closeDeg);       // 180 servo: holds this angle
 }
 static void gateLoop() {
   if (gateStopAt && (int32_t)(millis() - gateStopAt) >= 0) {
@@ -371,7 +371,7 @@ bool adminGate(const String &action) {
   if (action == "recal") {                          // gate was turned to CLOSED by hand: reset everything
     ledcWrite(PIN_SERVO_GATE, 0);                   // stop any spinning
     gateStopAt = 0;
-    if (!SERVO_360) servoWrite(PIN_SERVO_GATE, GATE_CLOSED_DEG);
+    if (!cfg.servo360) servoWrite(PIN_SERVO_GATE, cfg.closeDeg);
     gateIsOpen = false;
     if (mstate == M_WAIT_DROP || mstate == M_CLOSING || mstate == M_GATE_TEST ||
         mstate == M_DEMO_CLOSE || mstate == M_WAIT_REMOVE) mstate = M_IDLE;
@@ -384,6 +384,8 @@ bool adminGate(const String &action) {
   if (action == "open") gateOpen();
   else if (action == "close") gateClose();
   else if (action == "cycle") { gateOpen(); mstate = M_GATE_TEST; mT = millis(); }
+  else if (action == "tryopen" && !cfg.servo360) { servoWrite(PIN_SERVO_GATE, cfg.openDeg); gateIsOpen = true; }
+  else if (action == "tryclose" && !cfg.servo360) { servoWrite(PIN_SERVO_GATE, cfg.closeDeg); gateIsOpen = false; }
   else return false;
   Serial.println("Admin gate: " + action);
   return true;
@@ -428,8 +430,8 @@ void machineBegin() {
   digitalWrite(PIN_LED_GREEN, HIGH);
 
   ledcAttach(PIN_SERVO_GATE, 50, 14);
-  if (SERVO_360) ledcWrite(PIN_SERVO_GATE, 0);              // 360 servo: stand still
-  else servoWrite(PIN_SERVO_GATE, GATE_CLOSED_DEG);
+  if (cfg.servo360) ledcWrite(PIN_SERVO_GATE, 0);           // 360 servo: stand still
+  else servoWrite(PIN_SERVO_GATE, cfg.closeDeg);            // 180 servo: go to closed angle and hold
   gateIsOpen = false;
   calibrateDrop();                           // keep the drop path empty while starting up
   learnIrIdle();

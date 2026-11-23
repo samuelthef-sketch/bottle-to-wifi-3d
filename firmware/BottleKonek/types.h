@@ -53,6 +53,9 @@ struct Settings {
   int gateCloseMs;      // 360 servo: spin time to close
   int gateSpeed;        // 360 servo: spin speed (us away from 1500)
   int gateDir;          // 1 or -1
+  bool servo360;        // true = 360 servo (timed), false = 180 servo (angles)
+  int openDeg;          // 180 servo: open angle
+  int closeDeg;         // 180 servo: closed angle
 };
 
 struct Stats {

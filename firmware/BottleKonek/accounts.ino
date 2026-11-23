@@ -270,6 +270,9 @@ void loadSettings() {
   cfg.gateCloseMs  = prefs.getInt("gclose", GATE_CLOSE_MS);
   cfg.gateSpeed    = prefs.getInt("gspd", GATE_SPEED_US);
   cfg.gateDir      = prefs.getInt("gdir", GATE_OPEN_DIR);
+  cfg.servo360     = prefs.getBool("s360", SERVO_360);
+  cfg.openDeg      = prefs.getInt("odeg", GATE_OPEN_DEG);
+  cfg.closeDeg     = prefs.getInt("cdeg", GATE_CLOSED_DEG);
   prefs.end();
 }
 
@@ -283,6 +286,9 @@ void saveSettings() {
   prefs.putInt("gclose", cfg.gateCloseMs);
   prefs.putInt("gspd", cfg.gateSpeed);
   prefs.putInt("gdir", cfg.gateDir);
+  prefs.putBool("s360", cfg.servo360);
+  prefs.putInt("odeg", cfg.openDeg);
+  prefs.putInt("cdeg", cfg.closeDeg);
   prefs.end();
 }
 
