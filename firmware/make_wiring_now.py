@@ -288,12 +288,10 @@ wire([(PW, 1060), (1860, 1060)], SIGCOL[12]); wire([(PW, 1100), (1860, 1100)], S
 to_right_pin('D33', [(PW, 1060), (1570, 1060)], SIGCOL[12])
 # echo: PW -> 1k -> node(1690) -> channel 1560; node -> 2.2k down -> GND
 to_right_pin('D32', [(PW, 1100), (1554, 1100)], SIGCOL[13])
-resistor(1750, 1100, False, '1 kΩ')
-wire([(1690, 1100), (1690, 1190), (XG_R, 1190)], C['gnd'], 5); dot(1690, 1100, SIGCOL[13]); dot(XG_R, 1190, C['gnd'])
-resistor(1690, 1150, True, '2.2 kΩ')
+T(1690, 1140, 'ECHO direct to D32 (no resistors: VCC is 3.3 V)', 12, 700, 'middle', '#17704a')
 pinhead(2120, 1060); pinhead(2120, 1100)
-M(2136, 1056, 'VCC', 11); M(2136, 1116, 'GND', 11)
-wire([(2100, 1060), (X5_R, 1060)], C['v5'], 5); dot(X5_R, 1060, C['v5'])
+M(2136, 1056, 'VCC (3V3)', 11); M(2136, 1116, 'GND', 11)
+wire([(2100, 1060), (X33_R, 1060)], C['v33'], 5); dot(X33_R, 1060, C['v33'])
 wire([(2100, 1100), (XG_R, 1100)], C['gnd'], 5); dot(XG_R, 1100, C['gnd'])
 
 
