@@ -46,6 +46,6 @@ function draw(d){var can=d.on&&d.active&&!d.busy;
  (d.last?'<div class="card"><span class="lbl">Last action</span><div>'+esc(d.last)+'</div></div>':'')+
  '<div class="sub" style="text-align:center">Minutes per bottle is set on <a href="/admin">/admin</a> (now '+d.mpb+').</div>'}
 function setDemo(on){api('/api/admin/demo/mode',{on:on}).then(function(){msg('Demo mode '+(on?'ON':'OFF'));poll()}).catch(function(x){msg(x.message)})}
-function act(a){api('/api/admin/demo/'+a,{x:1}).then(function(){msg(a==='accept'?'Accepted: gate opens, minutes added':'Metal: rejected');poll()}).catch(function(x){msg(x.message)})}
+function act(a){api('/api/admin/demo/'+a,{x:1}).then(function(){msg('Checking for metal or paper... (2.5 s)');poll()}).catch(function(x){msg(x.message)})}
 poll();
 </script></body></html>)BKHTML";

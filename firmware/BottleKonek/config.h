@@ -34,6 +34,7 @@
 // Which sensor sees the bottle at the gate: 1 = ultrasonic (checks every 0.8 s), 0 = IR sensor
 #define ITEM_SENSOR_ULTRASONIC 1
 #define US_POLL_MS        800   // ultrasonic check interval during a drop session
+#define DEMO_CHECK_MS     2500  // demo panel: 'Checking for metal or paper' pause before the result
 #define DEMO_GATE_OPEN_MS 2500  // demo panel: how long the gate stays open after Accept
 #define PIN_IR          27    // IR obstacle module OUT at the gate. LOW = bottle waiting
 #define PIN_METAL       35    // ONE metal sensor (LJ18A3-8-Z/BY, PNP) through 10k/3.3k divider

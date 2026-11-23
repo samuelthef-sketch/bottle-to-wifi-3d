@@ -19,7 +19,7 @@ static LiquidCrystal_I2C *lcd = nullptr;   // created in machineBegin() once the
 
 enum MState { M_IDLE, M_CHECK, M_WAIT_DROP, M_CLOSING, M_WAIT_REMOVE,
               M_TEST_COUNT, M_TEST_CHECK, M_TEST_DROP, M_GATE_TEST,     // test-mode states
-              M_DEMO_CLOSE };                                           // demo panel: gate open after Accept
+              M_DEMO_CHECK, M_DEMO_CLOSE };                                           // demo panel: gate open after Accept
 static MState   mstate = M_IDLE;
 static uint32_t mT = 0;              // time the current state started
 static uint32_t irSince = 0;         // IR has seen a bottle since
@@ -30,6 +30,7 @@ static float    baselineCm = 0;      // empty distance across the drop path (mea
 static uint32_t lastUs = 0;
 static bool     demoMode = false;  // /paneldemo: admin decides accept / metal
 static String   demoLast = "";
+static char     demoPending = 0;  // 'A' accept / 'R' metal, decided after the check pause
 static int      irIdle = HIGH;     // IR level with nothing in front (learned at start-up)
 static bool     usItem = false;    // ultrasonic sees an object (cached)
 static uint32_t usPollAt = 0;
@@ -317,22 +318,29 @@ void demoSet(bool on) {
   Serial.printf("Demo mode %s\n", on ? "ON" : "OFF");
 }
 
-bool demoAccept() {
+static bool demoStart(char what) {
   if (!demoMode || !drop.active) return false;
   if (mstate == M_WAIT_REMOVE) mstate = M_IDLE;
   if (mstate != M_IDLE) return false;
-  creditBottle();                                  // +minutes, bin count, beep
-  gateOpen();
-  lcdTemp("No metal detect.", "Accepted +" + String(cfg.minPerBottle) + " min", 3000);
-  demoLast = "Accepted: +" + String(cfg.minPerBottle) + " min added";
-  mstate = M_DEMO_CLOSE; mT = millis();
+  demoPending = what;
+  drop.lastActivityMs = millis();
+  lcdTemp("Checking for", "metal or paper..", DEMO_CHECK_MS + 200);
+  demoLast = "Checking for metal or paper...";
+  mstate = M_DEMO_CHECK; mT = millis();
   return true;
 }
+bool demoAccept() { return demoStart('A'); }
+bool demoReject() { return demoStart('R'); }
 
-bool demoReject() {
-  if (!demoMode || !drop.active) return false;
-  if (mstate == M_WAIT_REMOVE) mstate = M_IDLE;
-  if (mstate != M_IDLE) return false;
+static void demoFinishAccept() {
+  creditBottle();                                  // +minutes, bin count, beep
+  gateOpen();
+  lcdTemp("Accepted +" + String(cfg.minPerBottle) + " min", "No metal/paper", 3500);
+  demoLast = "Accepted: +" + String(cfg.minPerBottle) + " min added";
+  mstate = M_DEMO_CLOSE; mT = millis();
+}
+
+static void demoFinishReject() {
   stats.todayRejects++;
   drop.rejected++;
   drop.lastActivityMs = millis();
@@ -342,7 +350,7 @@ bool demoReject() {
   redUntil = millis() + 2500;
   beep(2);
   demoLast = "Metal: gate stayed closed, no minutes";
-  return true;
+  mstate = M_IDLE;
 }
 
 String demoJson() {
@@ -527,6 +535,15 @@ void machineLoop() {
         testFinish("No metal, gate opened, but the ultrasonic did not see a drop");
         gateClose();
         mstate = M_IDLE;
+      }
+      break;
+
+    case M_DEMO_CHECK:                             // demo: pretend to check for 2.5 s
+      if (now - mT >= DEMO_CHECK_MS) {
+        if (!drop.active) { demoLast = "Session ended before the check finished"; mstate = M_IDLE; }
+        else if (demoPending == 'A') demoFinishAccept();
+        else demoFinishReject();
+        demoPending = 0;
       }
       break;
 
