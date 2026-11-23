@@ -298,6 +298,7 @@ String testJson() {
 
 // Live readings for the admin "Sensor check" card
 String sensorsJson() {
+  if (demoMode) return "{\"demo\":true}";        // demo panel ON: show all sensors as working
   static float lastCm = 0;
   if (mstate == M_IDLE) lastCm = readCm();          // don't disturb a running drop check
   char b[200];
@@ -367,6 +368,17 @@ String demoJson() {
 
 // Admin buttons: "open", "close", "cycle" (open 3 s, then close)
 bool adminGate(const String &action) {
+  if (action == "recal") {                          // gate was turned to CLOSED by hand: reset everything
+    ledcWrite(PIN_SERVO_GATE, 0);                   // stop any spinning
+    gateStopAt = 0;
+    if (!SERVO_360) servoWrite(PIN_SERVO_GATE, GATE_CLOSED_DEG);
+    gateIsOpen = false;
+    if (mstate == M_WAIT_DROP || mstate == M_CLOSING || mstate == M_GATE_TEST ||
+        mstate == M_DEMO_CLOSE || mstate == M_WAIT_REMOVE) mstate = M_IDLE;
+    lcdTemp("Servo", "recalibrated", 1500);
+    Serial.println("Admin: servo recalibrated (gate = CLOSED)");
+    return true;
+  }
   if (mstate == M_WAIT_REMOVE) mstate = M_IDLE;     // admin overrides a stuck reject
   if (mstate != M_IDLE) return false;
   if (action == "open") gateOpen();
