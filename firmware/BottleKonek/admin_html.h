@@ -58,9 +58,9 @@ function gate(a){api('/api/admin/gate',{a:a}).then(function(){msg(a==='cycle'?'G
 function setTest(on){api('/api/admin/testmode',{on:on}).then(function(){msg('Test mode '+(on?'ON':'OFF'));load()}).catch(function(x){msg(x.message)})}
 function row(ok,name,txt,hint){return '<div style="display:grid;grid-template-columns:18px 1fr;gap:10px;align-items:start;padding:8px 10px;border-radius:10px;background:'+(ok?'#e6f4ee':'#f4f7f6')+'"><span style="width:14px;height:14px;margin-top:3px;border-radius:50%;background:'+(ok?'#1d8a4f':'#c3cfcb')+'"></span><div><b>'+name+':</b> '+txt+'<div style="font-size:12.5px;color:var(--muted)">'+hint+'</div></div></div>'}
 function drawSens(x){var el=$('sens');if(!el)return;
- el.innerHTML=row(x.ir,'IR sensor (D27)',x.ir?'SEES SOMETHING':'nothing in front','Put your finger 2-5 cm in front of it: the dot should turn green.')+
- row(x.metal,'Metal sensor (D35)',x.metal?'METAL DETECTED':'no metal','Hold a coin or can near the orange face (under 0.8 cm). Needs the 12 V supply ON.')+
- row(x.passing,'Ultrasonic (D33/D32)',x.cm>0?(x.cm.toFixed(1)+' cm'+(x.base>0?' (empty = '+x.base.toFixed(1)+' cm)':'')):'NO ECHO','Wave your hand in front of it: the distance should change and the dot turn green. Needs the buck (5 V) ON.')}
+ el.innerHTML=row(x.ir,'IR sensor (D27)',x.ir?'SEES SOMETHING':'nothing in front','Green only when your finger is 2-5 cm in front. Always green? Turn its blue screw or point it at empty space.')+
+ (x.metalOn?row(x.metal,'Metal sensor (D35)',x.metal?'METAL DETECTED':'no metal','Hold a coin or can near the orange face (under 0.8 cm). Needs 12 V from the MT3608.'):row(false,'Metal sensor (D35)','switched OFF in config.h','Set USE_METAL_SENSOR 1 after the MT3608 is installed.'))+
+ row(x.passing,'Ultrasonic (D33/D32)',x.cm>0?(x.cm.toFixed(1)+' cm'+(x.base>0?' (empty = '+x.base.toFixed(1)+' cm)':'')):'NO ECHO','Wave your hand in front of it: the distance should change and the dot turn green. VCC must be on the 5 V rail (ESP32 V pin).')}
 var sensT=null;function pollSens(){clearTimeout(sensT);if(!$('sens'))return;api('/api/admin/sensors').then(drawSens).catch(function(){}).then(function(){sensT=setTimeout(pollSens,700)})}
 function recal(){api('/api/admin/recal',{x:1}).then(function(x){drawSens(x);msg(x.base>0?'Empty distance: '+x.base.toFixed(1)+' cm':'Still no echo: check power and wires')}).catch(function(e){msg(e.message)})}
 function binEmptied(){api('/api/admin/bin-emptied',{x:1}).then(function(){msg('Bin count reset to 0');load()}).catch(function(x){msg(x.message)})}

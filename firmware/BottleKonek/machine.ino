@@ -286,8 +286,8 @@ String sensorsJson() {
   static float lastCm = 0;
   if (mstate == M_IDLE) lastCm = readCm();          // don't disturb a running drop check
   char b[200];
-  snprintf(b, sizeof(b), "{\"ir\":%s,\"metal\":%s,\"cm\":%.1f,\"base\":%.1f,\"passing\":%s}",
-           irItem() ? "true" : "false", metalNow() ? "true" : "false", lastCm, baselineCm,
+  snprintf(b, sizeof(b), "{\"ir\":%s,\"metal\":%s,\"metalOn\":%s,\"cm\":%.1f,\"base\":%.1f,\"passing\":%s}",
+           irItem() ? "true" : "false", metalNow() ? "true" : "false", USE_METAL_SENSOR ? "true" : "false", lastCm, baselineCm,
            (lastCm > 0 && baselineCm > 0 && lastCm < baselineCm - DROP_DELTA_CM) ? "true" : "false");
   return String(b);
 }
@@ -296,6 +296,7 @@ void recalibrateDrop() { calibrateDrop(); }
 
 // Admin buttons: "open", "close", "cycle" (open 3 s, then close)
 bool adminGate(const String &action) {
+  if (mstate == M_WAIT_REMOVE) mstate = M_IDLE;     // admin overrides a stuck reject
   if (mstate != M_IDLE) return false;
   if (action == "open") gateOpen();
   else if (action == "close") gateClose();
@@ -360,7 +361,7 @@ void machineLoop() {
 
   switch (mstate) {
     case M_IDLE:
-      if (armed && irSince && now - irSince >= ITEM_DEBOUNCE_MS) {
+      if (drop.active && armed && irSince && now - irSince >= ITEM_DEBOUNCE_MS) {   // ignore the IR when nobody is dropping
         armed = false;
         metalSeen = plasticSeen = false;
         if (drop.active) drop.lastActivityMs = now;
@@ -460,6 +461,7 @@ void machineLoop() {
 
     case M_WAIT_REMOVE:                            // rejected item still at the gate
       if (irClearSince && now - irClearSince > 500) { mstate = M_IDLE; armed = true; }
+      else if (now - mT > 8000) mstate = M_IDLE;   // give up waiting; next item counts only after the IR clears
       break;
   }
 
