@@ -32,7 +32,7 @@
 #define PIN_SERVO_GATE  25    // MG90S: swinging gate at the end of the PVC chute
 
 // Which sensor sees the bottle at the gate: 1 = ultrasonic (checks every 0.8 s), 0 = IR sensor
-#define ITEM_SENSOR_ULTRASONIC 1
+#define ITEM_SENSOR_ULTRASONIC 0   // 0 = IR at the gate sees the bottle, ultrasonic below confirms the drop (2-step)
 #define US_POLL_MS        800   // ultrasonic check interval during a drop session
 #define DEMO_CHECK_MS     2500  // demo panel: 'Checking for metal or paper' pause before the result
 #define DEMO_GATE_OPEN_MS 2500  // demo panel: how long the gate stays open after Accept
